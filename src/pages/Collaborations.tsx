@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { useStore } from '../context/store';
 import { btnCls, inputCls } from '../lib/theme';
-import { Plus, Sparkles, Filter, CheckCircle2, Calendar, Tag, ExternalLink, Video, Clock, AlertTriangle, BellRing } from 'lucide-react';
+import { Plus, Sparkles, Filter, CheckCircle2, Tag, ExternalLink, Video, Clock, AlertTriangle, BellRing, Link2, Edit3 } from 'lucide-react';
 import type { Deal } from '../types';
 
 export default function Collaborations() {
-    const { brands, deals, addDeal, setDealStatus, deleteDeal } = useStore();
+    const { brands, deals, addDeal, updateDeal, setDealStatus, deleteDeal } = useStore();
 
     const [selectedNiche, setSelectedNiche] = useState<string>('All');
     const [activeTab, setActiveTab] = useState<'pipeline' | 'directory'>('pipeline');
 
-    // Form State
+    // New Deal Modal
     const [showAddModal, setShowAddModal] = useState(false);
     const [brandName, setBrandName] = useState('');
     const [dealTitle, setDealTitle] = useState('');
@@ -19,6 +19,26 @@ export default function Collaborations() {
     const [dueDate, setDueDate] = useState('');
     const [paymentTimeline, setPaymentTimeline] = useState('30-45_biz_days');
     const [notes, setNotes] = useState('');
+    const [brandNiche, setBrandNiche] = useState('Beauty');
+
+    // Edit Campaign Modal State
+    const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
+    const [editBrandName, setEditBrandName] = useState('');
+    const [editTitle, setEditTitle] = useState('');
+    const [editFee, setEditFee] = useState('');
+    const [editType, setEditType] = useState<'paid' | 'barter' | 'hybrid'>('paid');
+    const [editDueDate, setEditDueDate] = useState('');
+    const [editTimeline, setEditTimeline] = useState('30-45_biz_days');
+    const [editNotes, setEditNotes] = useState('');
+    const [editNiche, setEditNiche] = useState('Beauty');
+
+    // Upload Video Modal State
+    const [uploadModalDeal, setUploadModalDeal] = useState<Deal | null>(null);
+    const [videoUrl, setVideoUrl] = useState('');
+    const [videoBrand, setVideoBrand] = useState('');
+    const [videoNiche, setVideoNiche] = useState('Beauty');
+
+    const nicheOptions = ['Beauty', 'Skincare', 'Fashion', 'Lifestyle', 'Education', 'Food', 'Vlog', 'College'];
 
     const handleCreateDeal = (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,12 +51,13 @@ export default function Collaborations() {
                 status: dealType === 'barter' ? 'completed' : 'in_progress',
                 agreedFee: dealType === 'barter' ? 0 : Number(agreedFee || 0),
                 dueDate: dueDate || new Date().toISOString().split('T')[0],
-                completedDate: new Date().toISOString().split('T')[0],
+                completedDate: dueDate || new Date().toISOString().split('T')[0],
                 paymentTimeline: paymentTimeline || '30-45_biz_days',
                 deliverableLinks: [],
                 notes: notes || 'Manual entry / Backfilled collaboration',
             },
-            brandName
+            brandName,
+            brandNiche
         );
 
         setBrandName('');
@@ -48,22 +69,78 @@ export default function Collaborations() {
         setShowAddModal(false);
     };
 
-    const handleAddDeliverableLink = (deal: Deal) => {
-        const link = prompt(`Enter URL for video / Reel #${(deal.deliverableLinks?.length || 0) + 1}:`);
-        if (link) {
-            if (!deal.deliverableLinks) deal.deliverableLinks = [];
-            deal.deliverableLinks.push(link);
-            if (deal.status !== 'paid') {
-                deal.status = 'completed';
-                if (!deal.completedDate) {
-                    deal.completedDate = new Date().toISOString().split('T')[0];
-                }
-            }
-            setDealStatus(deal.id, deal.status);
-        }
+    const handleOpenEditModal = (deal: Deal) => {
+        const brand = brands.find((b) => b.id === deal.brandId);
+        setEditingDeal(deal);
+        setEditBrandName(brand?.name || '');
+        setEditTitle(deal.title);
+        setEditFee(deal.agreedFee ? deal.agreedFee.toString() : '0');
+        setEditType(deal.type);
+        setEditDueDate(deal.completedDate || deal.dueDate || new Date().toISOString().split('T')[0]);
+        setEditTimeline(deal.paymentTimeline || '30-45_biz_days');
+        setEditNotes(deal.notes || '');
+        setEditNiche(brand?.niche || 'Beauty');
     };
 
-    // Timeline Notification Engine considering Business Days
+    const handleSaveEditDeal = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingDeal) return;
+
+        updateDeal(
+            editingDeal.id,
+            {
+                title: editTitle,
+                agreedFee: editType === 'barter' ? 0 : Number(editFee || 0),
+                type: editType,
+                dueDate: editDueDate,
+                completedDate: editDueDate,
+                paymentTimeline: editTimeline,
+                notes: editNotes,
+            },
+            editBrandName,
+            editNiche
+        );
+
+        setEditingDeal(null);
+    };
+
+    const handleOpenUploadModal = (deal: Deal) => {
+        const brand = brands.find((b) => b.id === deal.brandId);
+        setUploadModalDeal(deal);
+        setVideoBrand(brand?.name || deal.title.split(' ')[0] || '');
+        setVideoNiche(brand?.niche || 'Beauty');
+        setVideoUrl('');
+    };
+
+    const handleSaveVideoDeliverable = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!uploadModalDeal || !videoUrl) return;
+
+        const currentLinks = uploadModalDeal.deliverableLinks ? [...uploadModalDeal.deliverableLinks] : [];
+        currentLinks.push(videoUrl);
+
+        let nextStatus = uploadModalDeal.status;
+        if (nextStatus !== 'paid') {
+            nextStatus = 'completed';
+        }
+
+        const completedDate = uploadModalDeal.completedDate || new Date().toISOString().split('T')[0];
+
+        updateDeal(
+            uploadModalDeal.id,
+            {
+                deliverableLinks: currentLinks,
+                status: nextStatus,
+                completedDate: completedDate,
+            },
+            videoBrand,
+            videoNiche
+        );
+
+        setUploadModalDeal(null);
+        setVideoUrl('');
+    };
+
     const getTimelineNotification = (deal: Deal) => {
         if (deal.status === 'paid' || deal.type === 'barter') return null;
 
@@ -77,9 +154,9 @@ export default function Collaborations() {
         else if (timelineRaw === '30_days') calendarDaysToWait = 30;
         else if (timelineRaw === '45_days') calendarDaysToWait = 45;
         else if (timelineRaw === '60_days') calendarDaysToWait = 60;
-        else if (timelineRaw === '30_biz_days') calendarDaysToWait = 42; // ~30 business days
-        else if (timelineRaw === '45_biz_days') calendarDaysToWait = 63; // ~45 business days
-        else if (timelineRaw === '30-45_biz_days') calendarDaysToWait = 50; // Average target for 30-45 business days
+        else if (timelineRaw === '30_biz_days') calendarDaysToWait = 42;
+        else if (timelineRaw === '45_biz_days') calendarDaysToWait = 63;
+        else if (timelineRaw === '30-45_biz_days') calendarDaysToWait = 50;
 
         const baseDate = new Date(baseDateStr);
         const targetDueDate = new Date(baseDate);
@@ -109,11 +186,11 @@ export default function Collaborations() {
         };
     };
 
-    const niches = ['All', 'High Fashion', 'Fine Fragrance', 'Beauty & Skincare', 'Tech & Audio', 'Lifestyle'];
+    const niches = ['All', 'Beauty', 'Skincare', 'Fashion', 'Lifestyle', 'Education', 'Food', 'Vlog', 'College'];
 
     const filteredBrands = selectedNiche === 'All'
         ? brands
-        : brands.filter((b) => (b.niche || 'High Fashion') === selectedNiche);
+        : brands.filter((b) => (b.niche || 'Fashion') === selectedNiche);
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto text-purple-100">
@@ -152,7 +229,209 @@ export default function Collaborations() {
                 </div>
             </div>
 
-            {/* Add Deal Modal */}
+            {/* POPUP 1: Edit Campaign Details Modal */}
+            {editingDeal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+                    <div className="anime-glass p-6 rounded-3xl border border-purple-500/40 max-w-md w-full space-y-4 shadow-2xl">
+                        <div className="flex justify-between items-center border-b border-purple-500/20 pb-3">
+                            <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                <Edit3 className="w-5 h-5 text-pink-400" /> Edit Campaign Details
+                            </h3>
+                            <button onClick={() => setEditingDeal(null)} className="text-purple-400 hover:text-white font-bold text-sm">
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveEditDeal} className="space-y-3">
+                            <div>
+                                <label className="text-[10px] text-purple-300 font-bold block mb-1">Brand Name</label>
+                                <input
+                                    type="text"
+                                    value={editBrandName}
+                                    onChange={(e) => setEditBrandName(e.target.value)}
+                                    className={inputCls}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] text-purple-300 font-bold block mb-1">Campaign Title</label>
+                                <input
+                                    type="text"
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    className={inputCls}
+                                    required
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] text-purple-300 font-bold block mb-1">Category / Niche</label>
+                                    <select
+                                        value={editNiche}
+                                        onChange={(e) => setEditNiche(e.target.value)}
+                                        className={inputCls}
+                                    >
+                                        {nicheOptions.map((n) => (
+                                            <option key={n} value={n} className="bg-purple-950 text-white">{n}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] text-purple-300 font-bold block mb-1">Deal Type</label>
+                                    <select
+                                        value={editType}
+                                        onChange={(e: any) => setEditType(e.target.value)}
+                                        className={inputCls}
+                                    >
+                                        <option value="paid" className="bg-purple-950 text-white">💰 Paid</option>
+                                        <option value="barter" className="bg-purple-950 text-white">🎁 Barter</option>
+                                        <option value="hybrid" className="bg-purple-950 text-white">✨ Hybrid</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] text-purple-300 font-bold block mb-1">Agreed Fee (₹)</label>
+                                    <input
+                                        type="number"
+                                        value={editType === 'barter' ? '' : editFee}
+                                        disabled={editType === 'barter'}
+                                        onChange={(e) => setEditFee(e.target.value)}
+                                        className={inputCls}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] text-purple-300 font-bold block mb-1">Submitted On</label>
+                                    <input
+                                        type="date"
+                                        value={editDueDate}
+                                        onChange={(e) => setEditDueDate(e.target.value)}
+                                        className={inputCls}
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] text-purple-300 font-bold block mb-1">Payment Timeline</label>
+                                <select
+                                    value={editTimeline}
+                                    onChange={(e) => setEditTimeline(e.target.value)}
+                                    className={inputCls}
+                                >
+                                    <option value="30-45_biz_days" className="bg-purple-950 text-white">30–45 Business Days</option>
+                                    <option value="30_biz_days" className="bg-purple-950 text-white">30 Business Days</option>
+                                    <option value="45_biz_days" className="bg-purple-950 text-white">45 Business Days</option>
+                                    <option value="30_days" className="bg-purple-950 text-white">30 Days Net</option>
+                                    <option value="45_days" className="bg-purple-950 text-white">45 Days Net</option>
+                                    <option value="60_days" className="bg-purple-950 text-white">60 Days Net</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] text-purple-300 font-bold block mb-1">Deliverable Notes</label>
+                                <textarea
+                                    value={editNotes}
+                                    onChange={(e) => setEditNotes(e.target.value)}
+                                    className={`${inputCls} h-16 resize-none`}
+                                />
+                            </div>
+
+                            <div className="flex gap-2 pt-2">
+                                <button type="button" onClick={() => setEditingDeal(null)} className="w-1/2 py-2.5 text-xs font-bold text-purple-300 bg-purple-950/60 rounded-xl hover:bg-purple-900/60">
+                                    Cancel
+                                </button>
+                                <button type="submit" className={`${btnCls} w-1/2`}>
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* POPUP 2: Upload Video Modal */}
+            {uploadModalDeal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+                    <div className="anime-glass p-6 rounded-3xl border border-pink-500/40 max-w-md w-full space-y-4 shadow-2xl">
+                        <div className="flex justify-between items-center border-b border-purple-500/20 pb-3">
+                            <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                <Video className="w-5 h-5 text-pink-400" /> Upload Deliverable Output
+                            </h3>
+                            <button onClick={() => setUploadModalDeal(null)} className="text-purple-400 hover:text-white font-bold text-sm">
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveVideoDeliverable} className="space-y-3">
+                            <div>
+                                <label className="text-[10px] text-purple-300 font-bold block mb-1">Reel / Video URL Link</label>
+                                <div className="relative">
+                                    <Link2 className="w-4 h-4 text-pink-400 absolute left-3 top-3" />
+                                    <input
+                                        type="url"
+                                        placeholder="https://www.instagram.com/reel/..."
+                                        value={videoUrl}
+                                        onChange={(e) => setVideoUrl(e.target.value)}
+                                        className={`${inputCls} pl-9`}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] text-purple-300 font-bold block mb-1">Brand Name</label>
+                                <input
+                                    type="text"
+                                    list="brands-list"
+                                    placeholder="e.g. Lakme, Meesho, Chanel"
+                                    value={videoBrand}
+                                    onChange={(e) => setVideoBrand(e.target.value)}
+                                    className={inputCls}
+                                    required
+                                />
+                                <datalist id="brands-list">
+                                    {brands.map((b) => (
+                                        <option key={b.id} value={b.name} />
+                                    ))}
+                                </datalist>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] text-purple-300 font-bold block mb-1">Category / Niche</label>
+                                <select
+                                    value={videoNiche}
+                                    onChange={(e) => setVideoNiche(e.target.value)}
+                                    className={inputCls}
+                                >
+                                    {nicheOptions.map((n) => (
+                                        <option key={n} value={n} className="bg-purple-950 text-white">{n}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex gap-2 pt-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setUploadModalDeal(null)}
+                                    className="w-1/2 py-2.5 text-xs font-bold text-purple-300 bg-purple-950/60 rounded-xl hover:bg-purple-900/60"
+                                >
+                                    Cancel
+                                </button>
+                                <button type="submit" className={`${btnCls} w-1/2`}>
+                                    Save Video Link
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* POPUP 3: Add Collaboration Modal */}
             {showAddModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
                     <div className="anime-glass p-6 rounded-3xl border border-purple-500/30 max-w-md w-full space-y-4">
@@ -170,19 +449,25 @@ export default function Collaborations() {
                                 <label className="text-[10px] text-purple-300 font-bold block mb-1">Brand Name</label>
                                 <input
                                     type="text"
-                                    placeholder="e.g. Chanel Beauty, Bang & Olufsen"
+                                    list="brands-list-modal"
+                                    placeholder="e.g. Lakme, Chanel, Bang & Olufsen"
                                     value={brandName}
                                     onChange={(e) => setBrandName(e.target.value)}
                                     className={inputCls}
                                     required
                                 />
+                                <datalist id="brands-list-modal">
+                                    {brands.map((b) => (
+                                        <option key={b.id} value={b.name} />
+                                    ))}
+                                </datalist>
                             </div>
 
                             <div>
                                 <label className="text-[10px] text-purple-300 font-bold block mb-1">Campaign Title</label>
                                 <input
                                     type="text"
-                                    placeholder="e.g. Sublimage Launch - 2 Reels"
+                                    placeholder="e.g. Plumping Lip Oil - 1 Reel"
                                     value={dealTitle}
                                     onChange={(e) => setDealTitle(e.target.value)}
                                     className={inputCls}
@@ -192,18 +477,33 @@ export default function Collaborations() {
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
+                                    <label className="text-[10px] text-purple-300 font-bold block mb-1">Category / Niche</label>
+                                    <select
+                                        value={brandNiche}
+                                        onChange={(e) => setBrandNiche(e.target.value)}
+                                        className={inputCls}
+                                    >
+                                        {nicheOptions.map((n) => (
+                                            <option key={n} value={n} className="bg-purple-950 text-white">{n}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
                                     <label className="text-[10px] text-purple-300 font-bold block mb-1">Deal Type</label>
                                     <select
                                         value={dealType}
                                         onChange={(e: any) => setDealType(e.target.value)}
                                         className={inputCls}
                                     >
-                                        <option value="paid" className="bg-purple-950 text-white">💰 Paid Campaign</option>
-                                        <option value="barter" className="bg-purple-950 text-white">🎁 Barter / Gifted</option>
-                                        <option value="hybrid" className="bg-purple-950 text-white">✨ Hybrid (Fee + Product)</option>
+                                        <option value="paid" className="bg-purple-950 text-white">💰 Paid</option>
+                                        <option value="barter" className="bg-purple-950 text-white">🎁 Barter</option>
+                                        <option value="hybrid" className="bg-purple-950 text-white">✨ Hybrid</option>
                                     </select>
                                 </div>
+                            </div>
 
+                            <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-[10px] text-purple-300 font-bold block mb-1">Fee (₹)</label>
                                     <input
@@ -215,11 +515,9 @@ export default function Collaborations() {
                                         className={inputCls}
                                     />
                                 </div>
-                            </div>
 
-                            <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="text-[10px] text-purple-300 font-bold block mb-1">Post / Submission Date</label>
+                                    <label className="text-[10px] text-purple-300 font-bold block mb-1">Submission Date</label>
                                     <input
                                         type="date"
                                         value={dueDate}
@@ -227,28 +525,28 @@ export default function Collaborations() {
                                         className={inputCls}
                                     />
                                 </div>
+                            </div>
 
-                                <div>
-                                    <label className="text-[10px] text-purple-300 font-bold block mb-1">Payment Timeline Terms</label>
-                                    <select
-                                        value={paymentTimeline}
-                                        onChange={(e) => setPaymentTimeline(e.target.value)}
-                                        className={inputCls}
-                                    >
-                                        <option value="30-45_biz_days" className="bg-purple-950 text-white">30 - 45 Business Days</option>
-                                        <option value="30_biz_days" className="bg-purple-950 text-white">30 Business Days</option>
-                                        <option value="45_biz_days" className="bg-purple-950 text-white">45 Business Days</option>
-                                        <option value="30_days" className="bg-purple-950 text-white">30 Days Net</option>
-                                        <option value="45_days" className="bg-purple-950 text-white">45 Days Net</option>
-                                        <option value="60_days" className="bg-purple-950 text-white">60 Days Net</option>
-                                    </select>
-                                </div>
+                            <div>
+                                <label className="text-[10px] text-purple-300 font-bold block mb-1">Payment Timeline Terms</label>
+                                <select
+                                    value={paymentTimeline}
+                                    onChange={(e) => setPaymentTimeline(e.target.value)}
+                                    className={inputCls}
+                                >
+                                    <option value="30-45_biz_days" className="bg-purple-950 text-white">30 - 45 Business Days</option>
+                                    <option value="30_biz_days" className="bg-purple-950 text-white">30 Business Days</option>
+                                    <option value="45_biz_days" className="bg-purple-950 text-white">45 Business Days</option>
+                                    <option value="30_days" className="bg-purple-950 text-white">30 Days Net</option>
+                                    <option value="45_days" className="bg-purple-950 text-white">45 Days Net</option>
+                                    <option value="60_days" className="bg-purple-950 text-white">60 Days Net</option>
+                                </select>
                             </div>
 
                             <div>
                                 <label className="text-[10px] text-purple-300 font-bold block mb-1">Deliverable Notes</label>
                                 <textarea
-                                    placeholder="2 IG Reels + 4 Stories"
+                                    placeholder="1 IG Reel + 2 Stories"
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
                                     className={`${inputCls} h-16 resize-none`}
@@ -290,28 +588,42 @@ export default function Collaborations() {
                                                     {brand?.name ? brand.name.charAt(0) : 'B'}
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs font-bold text-pink-300">{brand?.name || 'Brand Partner'}</p>
+                                                    <p className="text-xs font-bold text-pink-300 flex items-center gap-1.5">
+                                                        {brand?.name || 'Brand Partner'}
+                                                        <span className="text-[9px] bg-purple-900/60 text-purple-300 px-1.5 py-0.2 rounded border border-purple-500/20">
+                                                            {brand?.niche || 'Beauty'}
+                                                        </span>
+                                                    </p>
                                                     <h3 className="text-base font-extrabold text-white">{deal.title}</h3>
                                                 </div>
                                             </div>
 
-                                            <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${deal.type === 'barter'
-                                                    ? 'bg-purple-900/80 text-purple-300 border border-purple-500/30'
-                                                    : deal.status === 'paid'
-                                                        ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
-                                                        : deal.status === 'completed'
-                                                            ? 'bg-blue-950/80 text-blue-300 border border-blue-500/30'
-                                                            : 'bg-amber-950/80 text-amber-300 border border-amber-500/30'
-                                                }`}>
-                                                {deal.type === 'barter' ? '🎁 Barter' : `₹${fee.toLocaleString('en-IN')}`}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleOpenEditModal(deal)}
+                                                    className="bg-purple-950/80 hover:bg-purple-900 text-purple-300 p-1.5 rounded-lg border border-purple-500/20 cursor-pointer transition-all flex items-center gap-1 text-[11px] font-bold px-2"
+                                                    title="Edit Campaign Details"
+                                                >
+                                                    <Edit3 className="w-3.5 h-3.5" /> Edit
+                                                </button>
+                                                <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${deal.type === 'barter'
+                                                        ? 'bg-purple-900/80 text-purple-300 border border-purple-500/30'
+                                                        : deal.status === 'paid'
+                                                            ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
+                                                            : deal.status === 'completed'
+                                                                ? 'bg-blue-950/80 text-blue-300 border border-blue-500/30'
+                                                                : 'bg-amber-950/80 text-amber-300 border border-amber-500/30'
+                                                    }`}>
+                                                    {deal.type === 'barter' ? '🎁 Barter' : `₹${fee.toLocaleString('en-IN')}`}
+                                                </span>
+                                            </div>
                                         </div>
 
                                         <p className="text-xs text-purple-200/80 bg-purple-950/40 p-2.5 rounded-xl border border-purple-500/10">
                                             {deal.notes || 'Standard brand collaboration terms.'}
                                         </p>
 
-                                        {/* Submission Date & Editable Payment Timeline Bar */}
+                                        {/* Submission Date & Payment Timeline */}
                                         <div className="grid grid-cols-2 gap-2 bg-purple-950/50 p-2.5 rounded-xl border border-purple-500/15 text-xs">
                                             <div>
                                                 <span className="text-[10px] text-purple-300 font-bold block mb-0.5">Submitted On</span>
@@ -319,8 +631,7 @@ export default function Collaborations() {
                                                     type="date"
                                                     value={deal.completedDate || deal.dueDate || ''}
                                                     onChange={(e) => {
-                                                        deal.completedDate = e.target.value;
-                                                        setDealStatus(deal.id, deal.status);
+                                                        updateDeal(deal.id, { completedDate: e.target.value, dueDate: e.target.value });
                                                     }}
                                                     className={`${inputCls} py-1 text-[11px]`}
                                                 />
@@ -330,8 +641,7 @@ export default function Collaborations() {
                                                 <select
                                                     value={deal.paymentTimeline || '30-45_biz_days'}
                                                     onChange={(e) => {
-                                                        deal.paymentTimeline = e.target.value;
-                                                        setDealStatus(deal.id, deal.status);
+                                                        updateDeal(deal.id, { paymentTimeline: e.target.value });
                                                     }}
                                                     className={`${inputCls} py-1 text-[11px]`}
                                                 >
@@ -345,16 +655,15 @@ export default function Collaborations() {
                                             </div>
                                         </div>
 
-                                        {/* Deliverable Video Links Section with (+) Add Button */}
+                                        {/* Deliverable Video Links Section */}
                                         <div className="space-y-2">
                                             <div className="flex items-center justify-between">
                                                 <span className="text-[11px] font-bold text-pink-300 flex items-center gap-1">
                                                     <Video className="w-3.5 h-3.5 text-pink-400" /> Deliverables ({deal.deliverableLinks?.length || 0})
                                                 </span>
                                                 <button
-                                                    onClick={() => handleAddDeliverableLink(deal)}
+                                                    onClick={() => handleOpenUploadModal(deal)}
                                                     className="bg-purple-900/80 hover:bg-pink-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer border border-purple-500/30"
-                                                    title="Add video link"
                                                 >
                                                     <Plus className="w-3 h-3" /> Add Link
                                                 </button>
@@ -403,7 +712,7 @@ export default function Collaborations() {
 
                                             <div className="flex items-center gap-2 flex-wrap justify-end">
                                                 <button
-                                                    onClick={() => handleAddDeliverableLink(deal)}
+                                                    onClick={() => handleOpenUploadModal(deal)}
                                                     className={`px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all ${deal.status === 'completed' || deal.status === 'paid'
                                                             ? 'bg-blue-600 text-white shadow-md'
                                                             : 'bg-purple-900/60 text-purple-200 hover:bg-purple-800/60'
@@ -440,7 +749,7 @@ export default function Collaborations() {
                 </div>
             )}
 
-            {/* Brand Directory */}
+            {/* Directory Tab */}
             {activeTab === 'directory' && (
                 <div className="space-y-6">
                     <div className="anime-glass p-3 rounded-2xl border border-purple-500/20 flex items-center gap-2 overflow-x-auto">
@@ -461,46 +770,52 @@ export default function Collaborations() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {filteredBrands.map((brand) => {
-                            const brandDeals = deals.filter((d) => d.brandId === brand.id);
-                            const paidDealsCount = brandDeals.filter((d) => d.type === 'paid').length;
-                            const barterDealsCount = brandDeals.filter((d) => d.type === 'barter').length;
-                            const totalLTV = brandDeals.reduce((acc, d) => acc + (d.agreedFee || 0), 0);
+                        {filteredBrands.length === 0 ? (
+                            <div className="col-span-3 anime-glass p-8 rounded-2xl text-center text-purple-300">
+                                No active brands in this niche yet.
+                            </div>
+                        ) : (
+                            filteredBrands.map((brand) => {
+                                const brandDeals = deals.filter((d) => d.brandId === brand.id);
+                                const paidDealsCount = brandDeals.filter((d) => d.type === 'paid').length;
+                                const barterDealsCount = brandDeals.filter((d) => d.type === 'barter').length;
+                                const totalLTV = brandDeals.reduce((acc, d) => acc + (d.agreedFee || 0), 0);
 
-                            return (
-                                <div key={brand.id} className="anime-glass p-5 rounded-2xl border border-purple-500/20 space-y-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-purple-500/30">
-                                            {brand.name ? brand.name.charAt(0) : 'B'}
+                                return (
+                                    <div key={brand.id} className="anime-glass p-5 rounded-2xl border border-purple-500/20 space-y-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-purple-500/30">
+                                                {brand.name ? brand.name.charAt(0) : 'B'}
+                                            </div>
+                                            <div>
+                                                <h3 className="text-base font-extrabold text-white">{brand.name}</h3>
+                                                <p className="text-[10px] text-pink-300 font-medium">{brand.instagram || brand.email || 'Partner'}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-base font-extrabold text-white">{brand.name}</h3>
-                                            <p className="text-[10px] text-pink-300 font-medium">{brand.instagram || brand.email || 'Partner'}</p>
+
+                                        <div className="flex items-center gap-1.5">
+                                            <Tag className="w-3 h-3 text-purple-400" />
+                                            <span className="text-[10px] bg-purple-950/80 text-purple-200 px-2.5 py-0.5 rounded-md font-semibold border border-purple-500/20">
+                                                {brand.niche || 'Fashion'}
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2 bg-purple-950/40 p-3 rounded-xl border border-purple-500/10 text-center">
+                                            <div>
+                                                <p className="text-[10px] text-purple-300 font-bold uppercase">Total Collabs</p>
+                                                <p className="text-base font-black text-white">{brandDeals.length} Deals</p>
+                                                <p className="text-[9px] text-purple-300">{paidDealsCount} Paid | {barterDealsCount} Barter</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-purple-300 font-bold uppercase">Lifetime Value</p>
+                                                <p className="text-base font-black text-emerald-400">₹{totalLTV.toLocaleString('en-IN')}</p>
+                                                <p className="text-[9px] text-emerald-300/80">Accumulated Earnings</p>
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <div className="flex items-center gap-1.5">
-                                        <Tag className="w-3 h-3 text-purple-400" />
-                                        <span className="text-[10px] bg-purple-950/80 text-purple-200 px-2.5 py-0.5 rounded-md font-semibold border border-purple-500/20">
-                                            {brand.niche || 'High Fashion'}
-                                        </span>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-2 bg-purple-950/40 p-3 rounded-xl border border-purple-500/10 text-center">
-                                        <div>
-                                            <p className="text-[10px] text-purple-300 font-bold uppercase">Total Collabs</p>
-                                            <p className="text-base font-black text-white">{brandDeals.length} Deals</p>
-                                            <p className="text-[9px] text-purple-300">{paidDealsCount} Paid | {barterDealsCount} Barter</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] text-purple-300 font-bold uppercase">Lifetime Value</p>
-                                            <p className="text-base font-black text-emerald-400">₹{totalLTV.toLocaleString('en-IN')}</p>
-                                            <p className="text-[9px] text-emerald-300/80">Accumulated Earnings</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })
+                        )}
                     </div>
                 </div>
             )}

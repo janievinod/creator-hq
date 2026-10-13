@@ -17,7 +17,8 @@ interface StoreContextType {
     isSyncing: boolean;
     startingBankBalance: number;
     setStartingBankBalance: (val: number) => void;
-    addDeal: (deal: Omit<Deal, 'id'>, brandName: string) => void;
+    addDeal: (deal: Omit<Deal, 'id'>, brandName: string, niche?: string) => void;
+    updateDeal: (dealId: string, updatedFields: Partial<Deal>, brandName?: string, niche?: string) => void;
     setDealStatus: (id: string, status: DealStatus) => void;
     deleteDeal: (id: string) => void;
     addPayment: (dealId: string, amount: number, date: string) => void;
@@ -38,16 +39,12 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     const [profile, setProfile] = useState<CreatorProfile>(() => {
         const saved = localStorage.getItem('hq_profile');
         if (saved) {
-            try {
-                return JSON.parse(saved);
-            } catch {
-                // Fallback
-            }
+            try { return JSON.parse(saved); } catch { }
         }
         return {
             name: 'Janie V',
             handle: '@janiev.luxury',
-            niche: 'High Fashion, Fine Fragrance & Aesthetic Studio',
+            niche: 'Fashion, Lifestyle & Creative Studio',
             email: 'janie.partnerships@gmail.com',
             instagramConnected: true,
             gmailConnected: true,
@@ -57,7 +54,6 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         };
     });
 
-    // Pure Live Data - Starts at Zero / Empty
     const [startingBankBalance, setStartingBankBalanceState] = useState<number>(() => {
         return Number(localStorage.getItem('hq_bank_balance') || 0);
     });
@@ -128,32 +124,15 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     const [goal, setGoalData] = useState<Goal>(() => {
         try {
             const saved = localStorage.getItem('hq_goal');
-            return saved ? JSON.parse(saved) : {
-                revenueTarget: 0,
-                dealsTarget: 0,
-                outreachTarget: 0,
-                outreachDone: 0,
-                contentTarget: 0,
-                contentDone: 0,
-                plan: ''
-            };
+            return saved ? JSON.parse(saved) : { revenueTarget: 0, dealsTarget: 0, outreachTarget: 0, outreachDone: 0, contentTarget: 0, contentDone: 0, plan: '' };
         } catch {
-            return {
-                revenueTarget: 0,
-                dealsTarget: 0,
-                outreachTarget: 0,
-                outreachDone: 0,
-                contentTarget: 0,
-                contentDone: 0,
-                plan: ''
-            };
+            return { revenueTarget: 0, dealsTarget: 0, outreachTarget: 0, outreachDone: 0, contentTarget: 0, contentDone: 0, plan: '' };
         }
     });
 
     const [syncReport, setSyncReport] = useState<LiveSyncReport | null>(null);
     const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-    // Persistence Syncing
     useEffect(() => { localStorage.setItem('hq_profile', JSON.stringify(profile)); }, [profile]);
     useEffect(() => { localStorage.setItem('hq_bank_balance', startingBankBalance.toString()); }, [startingBankBalance]);
     useEffect(() => { localStorage.setItem('hq_brands', JSON.stringify(brands)); }, [brands]);
@@ -165,9 +144,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => { localStorage.setItem('hq_ideas', JSON.stringify(ideas)); }, [ideas]);
     useEffect(() => { localStorage.setItem('hq_goal', JSON.stringify(goal)); }, [goal]);
 
-    const setStartingBankBalance = (val: number) => {
-        setStartingBankBalanceState(val);
-    };
+    const setStartingBankBalance = (val: number) => setStartingBankBalanceState(val);
 
     const clearAllData = () => {
         localStorage.clear();
@@ -179,27 +156,13 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         setDeliverables([]);
         setMessages([]);
         setIdeas([]);
-        setGoalData({
-            revenueTarget: 0,
-            dealsTarget: 0,
-            outreachTarget: 0,
-            outreachDone: 0,
-            contentTarget: 0,
-            contentDone: 0,
-            plan: ''
-        });
+        setGoalData({ revenueTarget: 0, dealsTarget: 0, outreachTarget: 0, outreachDone: 0, contentTarget: 0, contentDone: 0, plan: '' });
     };
 
-    // Live Sync Engine Action
     const syncInboxes = async (): Promise<LiveSyncReport> => {
         setIsSyncing(true);
         try {
-            const report: LiveSyncReport = {
-                timestamp: new Date().toISOString(),
-                status: 'success',
-                messagesFetched: messages.length,
-                sourcesSynced: ['instagram', 'gmail']
-            };
+            const report: LiveSyncReport = { timestamp: new Date().toISOString(), status: 'success', messagesFetched: messages.length, sourcesSynced: ['instagram', 'gmail'] };
             setSyncReport(report);
             setProfile(prev => ({ ...prev, lastSyncTimestamp: report.timestamp }));
             return report;
@@ -208,61 +171,66 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    const addDeal = (dealData: Omit<Deal, 'id'>, brandName: string) => {
+    const addDeal = (dealData: Omit<Deal, 'id'>, brandName: string, niche: string = 'Beauty') => {
         let brand = brands.find(b => b.name.toLowerCase() === brandName.toLowerCase());
+        let newBrands = [...brands];
+
         if (!brand) {
-            brand = { id: `b_${Date.now()}`, name: brandName, niche: 'High Fashion' };
-            setBrands(prev => [...prev, brand!]);
+            brand = { id: `b_${Date.now()}`, name: brandName, niche };
+            newBrands.push(brand);
+        } else if (niche && brand.niche !== niche) {
+            newBrands = newBrands.map(b => b.id === brand!.id ? { ...b, niche } : b);
         }
+        setBrands(newBrands);
+
         const newDeal: Deal = { ...dealData, id: `d_${Date.now()}`, brandId: brand.id };
         setDeals(prev => [newDeal, ...prev]);
     };
 
-    const setDealStatus = (id: string, status: DealStatus) => {
-        setDeals(prev => prev.map(d => d.id === id ? { ...d, status } : d));
+    const updateDeal = (dealId: string, updatedFields: Partial<Deal>, brandName?: string, niche?: string) => {
+        let targetBrandId = updatedFields.brandId;
+
+        if (brandName) {
+            let brand = brands.find(b => b.name.toLowerCase() === brandName.toLowerCase());
+            if (!brand) {
+                brand = { id: `b_${Date.now()}`, name: brandName, niche: niche || 'Beauty' };
+                setBrands(prev => [...prev, brand!]);
+            } else {
+                setBrands(prev => prev.map(b => b.id === brand!.id ? { ...b, name: brandName, niche: niche || b.niche } : b));
+            }
+            targetBrandId = brand.id;
+        }
+
+        setDeals(prevDeals =>
+            prevDeals.map(d => {
+                if (d.id === dealId) {
+                    return {
+                        ...d,
+                        ...updatedFields,
+                        brandId: targetBrandId || d.brandId,
+                    };
+                }
+                return d;
+            })
+        );
     };
 
-    const deleteDeal = (id: string) => {
-        setDeals(prev => prev.filter(d => d.id !== id));
-    };
-
-    const addPayment = (dealId: string, amount: number, date: string) => {
-        setPayments(prev => [...prev, { id: `p_${Date.now()}`, dealId, amount, date }]);
-    };
-
-    const addExpense = (dealId: string, note: string, amount: number, date: string) => {
-        setExpenses(prev => [...prev, { id: `e_${Date.now()}`, dealId, note, amount, date }]);
-    };
-
-    const toggleDeliverable = (id: string) => {
-        setDeliverables(prev => prev.map(d => d.id === id ? { ...d, done: !d.done } : d));
-    };
-
-    const addMessage = (msg: Omit<Message, 'id'>) => {
-        setMessages(prev => [{ ...msg, id: `m_${Date.now()}` }, ...prev]);
-    };
-
-    const patchMessage = (id: string, patch: Partial<Message>) => {
-        setMessages(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
-    };
-
-    const addIdea = (title: string, notes?: string) => {
-        setIdeas(prev => [{ id: `i_${Date.now()}`, title, notes, status: 'idea' }, ...prev]);
-    };
-
-    const setIdeaStatus = (id: string, status: IdeaStatus) => {
-        setIdeas(prev => prev.map(i => i.id === id ? { ...i, status } : i));
-    };
-
-    const setGoal = (patch: Partial<Goal>) => {
-        setGoalData(prev => ({ ...prev, ...patch }));
-    };
+    const setDealStatus = (id: string, status: DealStatus) => setDeals(prev => prev.map(d => d.id === id ? { ...d, status } : d));
+    const deleteDeal = (id: string) => setDeals(prev => prev.filter(d => d.id !== id));
+    const addPayment = (dealId: string, amount: number, date: string) => setPayments(prev => [...prev, { id: `p_${Date.now()}`, dealId, amount, date }]);
+    const addExpense = (dealId: string, note: string, amount: number, date: string) => setExpenses(prev => [...prev, { id: `e_${Date.now()}`, dealId, note, amount, date }]);
+    const toggleDeliverable = (id: string) => setDeliverables(prev => prev.map(d => d.id === id ? { ...d, done: !d.done } : d));
+    const addMessage = (msg: Omit<Message, 'id'>) => setMessages(prev => [{ ...msg, id: `m_${Date.now()}` }, ...prev]);
+    const patchMessage = (id: string, patch: Partial<Message>) => setMessages(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
+    const addIdea = (title: string, notes?: string) => setIdeas(prev => [{ id: `i_${Date.now()}`, title, notes, status: 'idea' }, ...prev]);
+    const setIdeaStatus = (id: string, status: IdeaStatus) => setIdeas(prev => prev.map(i => i.id === id ? { ...i, status } : i));
+    const setGoal = (patch: Partial<Goal>) => setGoalData(prev => ({ ...prev, ...patch }));
 
     return (
         <StoreContext.Provider value={{
             profile, setProfile, brands, deals, payments, expenses, deliverables, messages, ideas, goal,
             syncReport, isSyncing, startingBankBalance, setStartingBankBalance,
-            addDeal, setDealStatus, deleteDeal, addPayment, addExpense, toggleDeliverable,
+            addDeal, updateDeal, setDealStatus, deleteDeal, addPayment, addExpense, toggleDeliverable,
             addMessage, patchMessage, addIdea, setIdeaStatus, setGoal, syncInboxes, clearAllData
         }}>
             {children}
