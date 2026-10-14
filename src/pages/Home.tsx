@@ -65,7 +65,20 @@ export default function Home({ onNavigate }: { onNavigate: (tab: string) => void
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard emoji="💰" label="Collected This Month" value={formatINR(received)} hint="Real bank credits" />
                 <StatCard emoji="⏳" label="Total Outstanding" value={formatINR(totalOutstanding(s.deals, s.payments))} hint="Committed deal fees" />
-                <StatCard emoji="🚨" label="Overdue Invoices" value={formatINR(overdue)} hint={overdue > 0 ? 'Follow-up needed' : 'All clear on time'} />
+
+                {/* Clickable Overdue Invoices Card Container */}
+                <div
+                    onClick={() => onNavigate('collaborations')}
+                    className="cursor-pointer transition-transform hover:scale-[1.02]"
+                >
+                    <StatCard
+                        emoji="🚨"
+                        label="Overdue Invoices"
+                        value={formatINR(overdue)}
+                        hint={overdue > 0 ? 'Follow-up needed →' : 'All clear on time'}
+                    />
+                </div>
+
                 <StatCard emoji="🤝" label="Active Collaborations" value={String(active)} hint="In production or posted" />
             </div>
 
@@ -137,13 +150,12 @@ export default function Home({ onNavigate }: { onNavigate: (tab: string) => void
                                             <span className="font-bold text-white block truncate">{x.title}</span>
                                             <span className="text-purple-400 text-[11px] font-medium">{dealName(x.dealId)}</span>
                                         </div>
-                                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border shrink-0 ${
-                                            left < 0
-                                                ? 'bg-rose-950/80 text-rose-300 border-rose-500/40'
-                                                : left <= 3
+                                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border shrink-0 ${left < 0
+                                            ? 'bg-rose-950/80 text-rose-300 border-rose-500/40'
+                                            : left <= 3
                                                 ? 'bg-amber-950/80 text-amber-300 border-amber-500/40'
                                                 : 'bg-purple-900/60 text-purple-200 border-purple-500/30'
-                                        }`}>
+                                            }`}>
                                             {formatDate(x.dueDate)} · {left < 0 ? `${-left}d overdue` : `${left}d left`}
                                         </span>
                                     </li>

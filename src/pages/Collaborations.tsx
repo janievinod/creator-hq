@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../context/store';
 import { btnCls, inputCls } from '../lib/theme';
 import { Plus, Sparkles, Filter, CheckCircle2, Tag, ExternalLink, Video, Clock, AlertTriangle, BellRing, Link2, Edit3 } from 'lucide-react';
@@ -6,11 +7,14 @@ import type { Deal } from '../types';
 
 export default function Collaborations() {
     const { brands, deals, addDeal, updateDeal, setDealStatus, deleteDeal } = useStore();
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const isOverdueFilter = searchParams.get('filter') === 'overdue';
 
     const [selectedNiche, setSelectedNiche] = useState<string>('All');
     const [activeTab, setActiveTab] = useState<'pipeline' | 'directory'>('pipeline');
 
-    // New Deal Modal
+    // New Deal Modal State
     const [showAddModal, setShowAddModal] = useState(false);
     const [brandName, setBrandName] = useState('');
     const [dealTitle, setDealTitle] = useState('');
@@ -150,7 +154,9 @@ export default function Collaborations() {
         const timelineRaw = deal.paymentTimeline || '30-45_biz_days';
         let calendarDaysToWait = 30;
 
-        if (timelineRaw === '15_days') calendarDaysToWait = 15;
+        if (timelineRaw === '5_days') calendarDaysToWait = 5;
+        else if (timelineRaw === '7_days') calendarDaysToWait = 7;
+        else if (timelineRaw === '15_days') calendarDaysToWait = 15;
         else if (timelineRaw === '30_days') calendarDaysToWait = 30;
         else if (timelineRaw === '45_days') calendarDaysToWait = 45;
         else if (timelineRaw === '60_days') calendarDaysToWait = 60;
@@ -186,6 +192,12 @@ export default function Collaborations() {
         };
     };
 
+    const displayDeals = deals.filter((deal) => {
+        if (!isOverdueFilter) return true;
+        const notif = getTimelineNotification(deal);
+        return notif?.type === 'overdue' || notif?.type === 'warning';
+    });
+
     const niches = ['All', 'Beauty', 'Skincare', 'Fashion', 'Lifestyle', 'Education', 'Food', 'Vlog', 'College'];
 
     const filteredBrands = selectedNiche === 'All'
@@ -199,11 +211,24 @@ export default function Collaborations() {
                 <div>
                     <span className="text-[10px] uppercase font-bold text-pink-400 tracking-widest">Brand Growth & CRM</span>
                     <h1 className="text-3xl font-black text-white">Collaborations & Brand Directory</h1>
+                    {isOverdueFilter && (
+                        <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs font-bold text-rose-400 bg-rose-950/80 px-2.5 py-1 rounded-lg border border-rose-500/30 flex items-center gap-1">
+                                🚨 Filtered: Showing Overdue & Payment Alert Deals Only
+                            </span>
+                            <button
+                                onClick={() => setSearchParams({})}
+                                className="text-xs text-purple-300 hover:text-white underline font-bold cursor-pointer"
+                            >
+                                Clear Filter
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex gap-2">
                     <button
-                        onClick={() => setActiveTab('pipeline')}
+                        onClick={() => { setActiveTab('pipeline'); setSearchParams({}); }}
                         className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'pipeline'
                                 ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/30'
                                 : 'anime-glass text-purple-300 hover:text-white'
@@ -212,7 +237,7 @@ export default function Collaborations() {
                         📋 Active Pipeline
                     </button>
                     <button
-                        onClick={() => setActiveTab('directory')}
+                        onClick={() => { setActiveTab('directory'); setSearchParams({}); }}
                         className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'directory'
                                 ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/30'
                                 : 'anime-glass text-purple-300 hover:text-white'
@@ -323,6 +348,9 @@ export default function Collaborations() {
                                     onChange={(e) => setEditTimeline(e.target.value)}
                                     className={inputCls}
                                 >
+                                    <option value="5_days" className="bg-purple-950 text-white">5 Days Net</option>
+                                    <option value="7_days" className="bg-purple-950 text-white">7 Days Net</option>
+                                    <option value="15_days" className="bg-purple-950 text-white">15 Days Net</option>
                                     <option value="30-45_biz_days" className="bg-purple-950 text-white">30–45 Business Days</option>
                                     <option value="30_biz_days" className="bg-purple-950 text-white">30 Business Days</option>
                                     <option value="45_biz_days" className="bg-purple-950 text-white">45 Business Days</option>
@@ -534,6 +562,9 @@ export default function Collaborations() {
                                     onChange={(e) => setPaymentTimeline(e.target.value)}
                                     className={inputCls}
                                 >
+                                    <option value="5_days" className="bg-purple-950 text-white">5 Days Net</option>
+                                    <option value="7_days" className="bg-purple-950 text-white">7 Days Net</option>
+                                    <option value="15_days" className="bg-purple-950 text-white">15 Days Net</option>
                                     <option value="30-45_biz_days" className="bg-purple-950 text-white">30 - 45 Business Days</option>
                                     <option value="30_biz_days" className="bg-purple-950 text-white">30 Business Days</option>
                                     <option value="45_biz_days" className="bg-purple-950 text-white">45 Business Days</option>
@@ -566,16 +597,18 @@ export default function Collaborations() {
                 </div>
             )}
 
-            {/* Active Pipeline */}
+            {/* Active Pipeline Grid */}
             {activeTab === 'pipeline' && (
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {deals.length === 0 ? (
+                        {displayDeals.length === 0 ? (
                             <div className="col-span-2 anime-glass p-8 rounded-2xl text-center text-purple-300">
-                                No active collaborations yet. Click "+ Add / Backfill Deal" to log a deal!
+                                {isOverdueFilter
+                                    ? '🎉 Great news! You have no overdue payment invoices right now.'
+                                    : 'No active collaborations yet. Click "+ Add / Backfill Deal" to log a deal!'}
                             </div>
                         ) : (
-                            deals.map((deal) => {
+                            displayDeals.map((deal) => {
                                 const brand = brands.find((b) => b.id === deal.brandId);
                                 const fee = deal.agreedFee || 0;
                                 const notification = getTimelineNotification(deal);
@@ -602,7 +635,6 @@ export default function Collaborations() {
                                                 <button
                                                     onClick={() => handleOpenEditModal(deal)}
                                                     className="bg-purple-950/80 hover:bg-purple-900 text-purple-300 p-1.5 rounded-lg border border-purple-500/20 cursor-pointer transition-all flex items-center gap-1 text-[11px] font-bold px-2"
-                                                    title="Edit Campaign Details"
                                                 >
                                                     <Edit3 className="w-3.5 h-3.5" /> Edit
                                                 </button>
@@ -623,7 +655,7 @@ export default function Collaborations() {
                                             {deal.notes || 'Standard brand collaboration terms.'}
                                         </p>
 
-                                        {/* Submission Date & Payment Timeline */}
+                                        {/* Submission Date & Payment Timeline inline controls */}
                                         <div className="grid grid-cols-2 gap-2 bg-purple-950/50 p-2.5 rounded-xl border border-purple-500/15 text-xs">
                                             <div>
                                                 <span className="text-[10px] text-purple-300 font-bold block mb-0.5">Submitted On</span>
@@ -645,6 +677,9 @@ export default function Collaborations() {
                                                     }}
                                                     className={`${inputCls} py-1 text-[11px]`}
                                                 >
+                                                    <option value="5_days" className="bg-purple-950 text-white">5 Days Net</option>
+                                                    <option value="7_days" className="bg-purple-950 text-white">7 Days Net</option>
+                                                    <option value="15_days" className="bg-purple-950 text-white">15 Days Net</option>
                                                     <option value="30-45_biz_days" className="bg-purple-950 text-white">30–45 Business Days</option>
                                                     <option value="30_biz_days" className="bg-purple-950 text-white">30 Business Days</option>
                                                     <option value="45_biz_days" className="bg-purple-950 text-white">45 Business Days</option>
@@ -655,7 +690,7 @@ export default function Collaborations() {
                                             </div>
                                         </div>
 
-                                        {/* Deliverable Video Links Section */}
+                                        {/* Deliverables Video Links */}
                                         <div className="space-y-2">
                                             <div className="flex items-center justify-between">
                                                 <span className="text-[11px] font-bold text-pink-300 flex items-center gap-1">
