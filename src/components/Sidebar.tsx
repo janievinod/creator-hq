@@ -4,7 +4,7 @@ import { LayoutDashboard, Inbox, DollarSign, Calendar, Lightbulb, Receipt, Setti
 const NAV_ITEMS = [
     { label: 'Dashboard', path: '/', icon: LayoutDashboard },
     { label: 'Inbound Leads', path: '/inbox', icon: Inbox },
-    { label: 'Deals & Revenue', path: '/deals', icon: DollarSign },
+    { label: 'Collaborations', path: '/collaborations', icon: DollarSign },
     { label: 'Reimbursements', path: '/reimbursements', icon: ShoppingBag },
     { label: 'Deliverables Calendar', path: '/calendar', icon: Calendar },
     { label: 'Content Ideas', path: '/ideas', icon: Lightbulb },

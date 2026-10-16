@@ -3,31 +3,68 @@ import PageHeader from '../components/ui/PageHeader';
 import { useStore } from '../context/store';
 import { formatINR } from '../lib/format';
 import { btnCls, inputCls } from '../lib/theme';
-import { ShoppingBag, CheckCircle2, Clock, Plus, Receipt } from 'lucide-react';
+import { ShoppingBag, CheckCircle2, Clock, Plus, Receipt, Trash2 } from 'lucide-react';
+
+interface ProductEntry {
+    productName: string;
+    amountPaid: string;
+}
 
 export default function Reimbursements() {
-    const { reimbursements, addReimbursement, toggleReimbursement } = useStore();
-    const [brandName, setBrandName] = useState('');
-    const [productName, setProductName] = useState('');
-    const [amountPaid, setAmountPaid] = useState('');
+    const { reimbursements, addReimbursement, toggleReimbursement, deals, brands } = useStore();
+
+    // Form state
+    const [selectedDealId, setSelectedDealId] = useState('');
     const [purchaseDate, setPurchaseDate] = useState('');
     const [notes, setNotes] = useState('');
 
-    const handleAdd = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!brandName || !productName || !amountPaid) return;
+    // Dynamic products list (starts with 1 product slot)
+    const [products, setProducts] = useState<ProductEntry[]>([
+        { productName: '', amountPaid: '' }
+    ]);
 
-        addReimbursement({
-            brandName: brandName.trim(),
-            productName: productName.trim(),
-            amountPaid: Number(amountPaid) || 0,
-            purchaseDate: purchaseDate || new Date().toISOString().split('T')[0],
-            notes: notes.trim() || undefined,
+    // Filter deals that are active/live (e.g. negotiation, active, or content_review)
+    const activeDeals = deals.filter(d => d.status !== 'completed' && d.status !== 'declined');
+
+    const handleProductChange = (index: number, field: keyof ProductEntry, value: string) => {
+        const updated = [...products];
+        updated[index][field] = value;
+        setProducts(updated);
+    };
+
+    const addProductField = () => {
+        setProducts(prev => [...prev, { productName: '', amountPaid: '' }]);
+    };
+
+    const removeProductField = (index: number) => {
+        if (products.length === 1) return;
+        setProducts(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleAddBatch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedDealId) return;
+
+        const targetDeal = deals.find(d => d.id === selectedDealId);
+        const brandObj = brands.find(b => b.id === targetDeal?.brandId);
+        const brandName = brandObj ? brandObj.name : 'Brand Collaboration';
+
+        // Add each product row as an individual reimbursement item tied to this brand/deal
+        products.forEach(p => {
+            if (p.productName.trim() && Number(p.amountPaid) > 0) {
+                addReimbursement({
+                    brandName,
+                    productName: p.productName.trim(),
+                    amountPaid: Number(p.amountPaid),
+                    purchaseDate: purchaseDate || new Date().toISOString().split('T')[0],
+                    notes: notes.trim() || undefined,
+                });
+            }
         });
 
-        setBrandName('');
-        setProductName('');
-        setAmountPaid('');
+        // Reset form
+        setSelectedDealId('');
+        setProducts([{ productName: '', amountPaid: '' }]);
         setPurchaseDate('');
         setNotes('');
     };
@@ -44,7 +81,7 @@ export default function Reimbursements() {
         <div className="p-8 space-y-8 max-w-7xl mx-auto">
             <PageHeader
                 title="Product Reimbursements"
-                subtitle="Track out-of-pocket product purchases awaiting brand refunds"
+                subtitle="Select active collaborations and log out-of-pocket product expenses"
             />
 
             {/* Metrics Overview */}
@@ -67,56 +104,104 @@ export default function Reimbursements() {
             </div>
 
             {/* Entry Form */}
-            <form onSubmit={handleAdd} className="rounded-3xl anime-glass border border-purple-500/30 p-6 shadow-xl space-y-4">
+            <form onSubmit={handleAddBatch} className="rounded-3xl anime-glass border border-purple-500/30 p-6 shadow-xl space-y-6">
                 <div className="flex items-center gap-2">
                     <Receipt className="w-4 h-4 text-pink-400" />
                     <h2 className="text-xs font-black text-pink-300 uppercase tracking-widest font-display">
-                        Log Purchased Product
+                        Log Collaboration Expenses
                     </h2>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    <input
-                        className={inputCls}
-                        placeholder="Brand Name (e.g. Nykaa, ZARA)"
-                        value={brandName}
-                        onChange={e => setBrandName(e.target.value)}
-                        required
-                    />
-                    <input
-                        className={inputCls}
-                        placeholder="Product Name / Item"
-                        value={productName}
-                        onChange={e => setProductName(e.target.value)}
-                        required
-                    />
-                    <input
-                        type="number"
-                        className={inputCls}
-                        placeholder="Amount Paid (₹)"
-                        value={amountPaid}
-                        onChange={e => setAmountPaid(e.target.value)}
-                        required
-                    />
-                    <input
-                        type="date"
-                        className={inputCls}
-                        value={purchaseDate}
-                        onChange={e => setPurchaseDate(e.target.value)}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Deal Selector */}
+                    <div>
+                        <label className="block text-xs font-bold text-purple-300 mb-1.5">Select Active Collaboration</label>
+                        <select
+                            className={inputCls}
+                            value={selectedDealId}
+                            onChange={e => setSelectedDealId(e.target.value)}
+                            required
+                        >
+                            <option value="">-- Choose a Live Collaboration --</option>
+                            {activeDeals.map(deal => {
+                                const brand = brands.find(b => b.id === deal.brandId);
+                                return (
+                                    <option key={deal.id} value={deal.id}>
+                                        {brand ? brand.name : 'Unknown Brand'} — {deal.title} ({deal.status})
+                                    </option>
+                                );
+                            })}
+                        </select>
+                    </div>
+
+                    {/* Purchase Date */}
+                    <div>
+                        <label className="block text-xs font-bold text-purple-300 mb-1.5">Purchase Date</label>
+                        <input
+                            type="date"
+                            className={inputCls}
+                            value={purchaseDate}
+                            onChange={e => setPurchaseDate(e.target.value)}
+                        />
+                    </div>
                 </div>
 
-                <div className="flex gap-4">
+                {/* Dynamic Product Rows */}
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-purple-300">Products Purchased for this Collab</label>
+                        <button
+                            type="button"
+                            onClick={addProductField}
+                            className="text-xs font-extrabold text-pink-400 hover:text-pink-300 flex items-center gap-1 cursor-pointer bg-pink-500/10 px-3 py-1 rounded-xl border border-pink-500/30 transition-all"
+                        >
+                            <Plus className="w-3.5 h-3.5" /> Add Another Product
+                        </button>
+                    </div>
+
+                    {products.map((prod, index) => (
+                        <div key={index} className="flex items-center gap-3">
+                            <input
+                                className={inputCls}
+                                placeholder={`Product ${index + 1} Name (e.g. Lipstick, Serum)`}
+                                value={prod.productName}
+                                onChange={e => handleProductChange(index, 'productName', e.target.value)}
+                                required
+                            />
+                            <input
+                                type="number"
+                                className={`${inputCls} w-44 shrink-0`}
+                                placeholder="Amount (₹)"
+                                value={prod.amountPaid}
+                                onChange={e => handleProductChange(index, 'amountPaid', e.target.value)}
+                                required
+                            />
+                            {products.length > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={() => removeProductField(index)}
+                                    className="p-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer shrink-0"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                <div>
+                    <label className="block text-xs font-bold text-purple-300 mb-1.5">Optional Notes / Receipt Info</label>
                     <input
                         className={inputCls}
-                        placeholder="Optional notes (e.g. Order #, invoice receipt ref...)"
+                        placeholder="e.g. Order #, courier tracking, brand manager approval reference..."
                         value={notes}
                         onChange={e => setNotes(e.target.value)}
                     />
-                    <button type="submit" className={`${btnCls} shrink-0`}>
-                        <Plus className="w-4 h-4" /> Add Product
-                    </button>
                 </div>
+
+                <button type="submit" className={btnCls}>
+                    <Plus className="w-4 h-4" /> Save Reimbursement Items
+                </button>
             </form>
 
             {/* List View */}
@@ -125,7 +210,7 @@ export default function Reimbursements() {
                     <div className="rounded-3xl anime-glass border border-purple-500/30 p-12 text-center text-xs text-purple-300 shadow-xl">
                         <ShoppingBag className="w-8 h-8 text-pink-400 mx-auto mb-3" />
                         <p className="font-black text-white text-base font-display">No Product Reimbursements Logged</p>
-                        <p className="mt-1">Add products you bought yourself for campaigns to track brand paybacks.</p>
+                        <p className="mt-1">Select an active collaboration above and log products you bought yourself.</p>
                     </div>
                 ) : (
                     reimbursements.map(item => (

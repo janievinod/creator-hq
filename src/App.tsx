@@ -13,6 +13,7 @@ import { StoreProvider } from './context/store';
 import { ThemeProvider } from './context/ThemeContext';
 import SeasonalMotionBg from './components/ui/SeasonalMotionBg';
 import Reimbursements from './pages/Reimbursements';
+import Calendar from './pages/Calendar';
 
 function HomeWithNavigation() {
   const navigate = useNavigate();
@@ -62,6 +63,7 @@ export default function App() {
                 <Route path="/review" element={<MonthlyReview />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/reimbursements" element={<Reimbursements />} />
+                <Route path="/calendar" element={<Calendar />} />
               </Routes>
             </main>
           </div>
