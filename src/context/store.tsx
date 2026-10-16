@@ -17,6 +17,7 @@ interface StoreContextType {
     isSyncing: boolean;
     startingBankBalance: number;
     setStartingBankBalance: (val: number) => void;
+    setSyncMode: (mode: 'mock' | 'live') => void;
     addDeal: (deal: Omit<Deal, 'id'>, brandName: string, niche?: string) => void;
     updateDeal: (dealId: string, updatedFields: Partial<Deal>, brandName?: string, niche?: string) => void;
     setDealStatus: (id: string, status: DealStatus) => void;
@@ -26,7 +27,7 @@ interface StoreContextType {
     toggleDeliverable: (id: string) => void;
     addMessage: (msg: Omit<Message, 'id'>) => void;
     patchMessage: (id: string, patch: Partial<Message>) => void;
-    addIdea: (title: string, notes?: string) => void;
+    addIdea: (title: string, notes?: string, platform?: string) => void;
     setIdeaStatus: (id: string, status: IdeaStatus) => void;
     setGoal: (patch: Partial<Goal>) => void;
     syncInboxes: () => Promise<LiveSyncReport>;
@@ -46,8 +47,6 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
             handle: '@janiev.luxury',
             niche: 'Fashion, Lifestyle & Creative Studio',
             email: 'janie.partnerships@gmail.com',
-            instagramConnected: true,
-            gmailConnected: true,
             mediaKitRate: 50000,
             syncMode: 'live',
             lastSyncTimestamp: new Date().toISOString(),
@@ -146,6 +145,10 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
 
     const setStartingBankBalance = (val: number) => setStartingBankBalanceState(val);
 
+    const setSyncMode = (mode: 'mock' | 'live') => {
+        setProfile(prev => ({ ...prev, syncMode: mode }));
+    };
+
     const clearAllData = () => {
         localStorage.clear();
         setStartingBankBalanceState(0);
@@ -222,14 +225,18 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     const toggleDeliverable = (id: string) => setDeliverables(prev => prev.map(d => d.id === id ? { ...d, done: !d.done } : d));
     const addMessage = (msg: Omit<Message, 'id'>) => setMessages(prev => [{ ...msg, id: `m_${Date.now()}` }, ...prev]);
     const patchMessage = (id: string, patch: Partial<Message>) => setMessages(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
-    const addIdea = (title: string, notes?: string) => setIdeas(prev => [{ id: `i_${Date.now()}`, title, notes, status: 'idea' }, ...prev]);
+
+    // Fixed addIdea implementation with default platform property matching the Idea interface
+    const addIdea = (title: string, notes?: string, platform: string = 'Instagram') =>
+        setIdeas(prev => [{ id: `i_${Date.now()}`, title, notes, platform, status: 'idea' }, ...prev]);
+
     const setIdeaStatus = (id: string, status: IdeaStatus) => setIdeas(prev => prev.map(i => i.id === id ? { ...i, status } : i));
     const setGoal = (patch: Partial<Goal>) => setGoalData(prev => ({ ...prev, ...patch }));
 
     return (
         <StoreContext.Provider value={{
             profile, setProfile, brands, deals, payments, expenses, deliverables, messages, ideas, goal,
-            syncReport, isSyncing, startingBankBalance, setStartingBankBalance,
+            syncReport, isSyncing, startingBankBalance, setStartingBankBalance, setSyncMode,
             addDeal, updateDeal, setDealStatus, deleteDeal, addPayment, addExpense, toggleDeliverable,
             addMessage, patchMessage, addIdea, setIdeaStatus, setGoal, syncInboxes, clearAllData
         }}>

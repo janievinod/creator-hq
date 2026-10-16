@@ -15,30 +15,34 @@ export default function NewDealModal({ open, onClose, prefill, onSaved }: NewDea
     const { addDeal } = useStore();
     const [form, setForm] = useState<DealForm>({
         brandName: prefill?.brandName || '',
+        title: prefill?.title || '',
         type: prefill?.type || 'paid',
         status: prefill?.status || 'negotiating',
         agreedFee: prefill?.agreedFee || '',
         barterValue: prefill?.barterValue || '',
         dueDate: prefill?.dueDate || '',
+        paymentTimeline: prefill?.paymentTimeline || '',
         notes: prefill?.notes || '',
+        niche: prefill?.niche || '',
     });
 
     if (!open) return null;
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        if (!form.brandName.trim()) return;
+        const brandName = form.brandName?.trim();
+        if (!brandName) return;
 
         addDeal({
             brandId: '',
-            title: `${form.type === 'paid' ? 'Campaign Partnership' : 'Anime Gifting'}`,
+            title: form.title?.trim() || `${form.type === 'paid' ? 'Campaign Partnership' : 'Anime Gifting'}`,
             type: form.type as DealType,
             status: form.status as DealStatus,
             agreedFee: Number(form.agreedFee) || 0,
             barterValue: Number(form.barterValue) || 0,
-            dueDate: form.dueDate || undefined,
-            notes: form.notes || undefined,
-        }, form.brandName.trim());
+            dueDate: form.dueDate ? form.dueDate : undefined,
+            notes: form.notes ? form.notes : undefined,
+        }, brandName);
 
         if (onSaved) onSaved();
         onClose();
@@ -131,7 +135,7 @@ export default function NewDealModal({ open, onClose, prefill, onSaved }: NewDea
                         <input
                             type="date"
                             className={inputCls}
-                            value={form.dueDate}
+                            value={form.dueDate || ''}
                             onChange={e => setForm({ ...form, dueDate: e.target.value })}
                         />
                     </div>
@@ -142,7 +146,7 @@ export default function NewDealModal({ open, onClose, prefill, onSaved }: NewDea
                             rows={2}
                             className={inputCls}
                             placeholder="Reel requirements, character cosplay notes, tags..."
-                            value={form.notes}
+                            value={form.notes || ''}
                             onChange={e => setForm({ ...form, notes: e.target.value })}
                         />
                     </div>

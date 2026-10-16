@@ -9,9 +9,10 @@ import type { DealForm, Message, MessageSource } from '../types';
 import { RefreshCw, Mail, CheckCircle2, MessageSquarePlus, Sparkles, X, Globe, AlertCircle } from 'lucide-react';
 import { Instagram } from '../components/icons/InstagramIcon';
 
-const KIND = {
+const KIND: Record<string, { label: string; cls: string }> = {
     paid: { label: '💸 Paid Collab', cls: 'bg-emerald-950/70 text-emerald-300 border-emerald-500/40' },
     barter: { label: '🎁 Gifted', cls: 'bg-amber-950/70 text-amber-300 border-amber-500/40' },
+    inquiry: { label: '📩 Inquiry', cls: 'bg-blue-950/80 text-blue-300 border-blue-500/50' },
     maybe: { label: '🤔 Brand Pitch', cls: 'bg-purple-950/70 text-purple-300 border-purple-500/40' },
     none: { label: 'General Inquiry', cls: 'bg-slate-900/70 text-slate-300 border-slate-700' },
 };
@@ -38,11 +39,11 @@ export default function Inbox() {
     const toDeal = (m: Message) => setPrefill({
         msg: m,
         form: {
-            brandName: m.from,
+            brandName: m.from || m.brandName || '',
             type: m.kind === 'barter' ? 'barter' : 'paid',
             status: 'negotiating',
             agreedFee: m.amount ? String(m.amount) : '',
-            notes: m.text.slice(0, 300)
+            notes: m.text ? m.text.slice(0, 300) : ''
         },
     });
 
@@ -62,21 +63,19 @@ export default function Inbox() {
                     <div className="flex items-center gap-1.5 p-1 rounded-2xl anime-glass border border-purple-500/30">
                         <button
                             onClick={() => s.setSyncMode('mock')}
-                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                                !isLive
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${!isLive
                                     ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-purple-900/50'
                                     : 'text-purple-300 hover:text-white'
-                            }`}
+                                }`}
                         >
                             ✨ Demo Simulation
                         </button>
                         <button
                             onClick={() => s.setSyncMode('live')}
-                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                                isLive
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${isLive
                                     ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-purple-900/50'
                                     : 'text-purple-300 hover:text-white'
-                            }`}
+                                }`}
                         >
                             <Globe className="w-3.5 h-3.5" /> Live API Sync
                         </button>
@@ -178,12 +177,12 @@ export default function Inbox() {
                                         <Mail className="w-4 h-4 text-purple-300" />
                                     )}
                                 </span>
-                                <span className="font-extrabold text-white text-sm font-display">{m.from}</span>
+                                <span className="font-extrabold text-white text-sm font-display">{m.from || m.brandName || 'Brand Lead'}</span>
                                 <span className="text-[11px] text-purple-400 capitalize font-medium">
-                                    {m.source} · {formatDate(m.receivedOn)}
+                                    {m.source} · {formatDate(m.receivedOn || '')}
                                 </span>
-                                <span className={`ml-auto rounded-full px-3 py-1 text-[11px] font-bold border ${KIND[m.kind].cls}`}>
-                                    {KIND[m.kind].label}{m.amount ? ` · ${formatINR(m.amount)}` : ''}
+                                <span className={`ml-auto rounded-full px-3 py-1 text-[11px] font-bold border ${KIND[m.kind]?.cls || KIND.none.cls}`}>
+                                    {KIND[m.kind]?.label || 'Message'}{m.amount ? ` · ${formatINR(m.amount)}` : ''}
                                 </span>
                             </div>
 

@@ -19,16 +19,16 @@ export interface Deal {
 }
 
 export interface DealForm {
-    brandName: string;
-    title: string;
+    brandName?: string;
+    title?: string;
     type: DealType;
     status: DealStatus;
     agreedFee: number | string;
     barterValue?: number | string;
     dueDate?: string;
-    paymentTimeline: string;
-    notes: string;
-    niche: string;
+    paymentTimeline?: string;
+    notes?: string;
+    niche?: string;
 }
 
 export interface Brand {
@@ -84,19 +84,19 @@ export interface Expense {
 
 export interface Goal {
     revenueTarget: number;
-    dealsTarget: number;
-    outreachTarget: number;
-    outreachDone: number;
-    contentTarget: number;
-    contentDone: number;
-    plan: string;
+    dealsTarget?: number;
+    outreachTarget?: number;
+    outreachDone?: number;
+    contentTarget?: number;
+    contentDone?: number;
+    plan?: string;
 }
 
 export interface Idea {
     id: string;
     title: string;
     status: IdeaStatus;
-    platform: string;
+    platform?: string;
     notes?: string;
 }
 
@@ -104,9 +104,9 @@ export interface CreatorProfile {
     name: string;
     handle: string;
     mediaKitRate: number;
-    niche: string;
-    email: string;
-    lastSyncTimestamp: string;
+    niche?: string;
+    email?: string;
+    lastSyncTimestamp?: string;
     syncMode?: 'mock' | 'live';
     instagramAccessToken?: string;
     instagramClientId?: string;

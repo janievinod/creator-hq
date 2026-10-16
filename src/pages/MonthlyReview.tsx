@@ -52,21 +52,21 @@ export default function MonthlyReview() {
                 />
                 <Bar
                     label="🤝 Confirmed Partnerships"
-                    pct={goalProgress(paidDeals.length, g.dealsTarget)}
+                    pct={goalProgress(paidDeals.length, g.dealsTarget || 0)}
                     grad="from-purple-500 to-pink-500"
-                    right={`${paidDeals.length} / ${g.dealsTarget} deals`}
+                    right={`${paidDeals.length} / ${g.dealsTarget || 0} deals`}
                 />
                 <Bar
                     label="📨 Brand Pitches & Outreach"
-                    pct={goalProgress(g.outreachDone, g.outreachTarget)}
+                    pct={goalProgress(g.outreachDone || 0, g.outreachTarget || 0)}
                     grad="from-sky-400 to-indigo-500"
-                    right={`${g.outreachDone} / ${g.outreachTarget} pitches`}
+                    right={`${g.outreachDone || 0} / ${g.outreachTarget || 0} pitches`}
                 />
                 <Bar
                     label="🎬 Content Published"
-                    pct={goalProgress(g.contentDone, g.contentTarget)}
+                    pct={goalProgress(g.contentDone || 0, g.contentTarget || 0)}
                     grad="from-amber-400 to-pink-500"
-                    right={`${g.contentDone} / ${g.contentTarget} posts`}
+                    right={`${g.contentDone || 0} / ${g.contentTarget || 0} posts`}
                 />
             </div>
 
@@ -113,7 +113,7 @@ export default function MonthlyReview() {
                                 type="number"
                                 min="0"
                                 className={inputCls}
-                                value={g[key]}
+                                value={g[key] ?? 0}
                                 onChange={e => s.setGoal({ [key]: num(e.target.value) })}
                             />
                         </label>
@@ -133,7 +133,7 @@ export default function MonthlyReview() {
                     rows={3}
                     className={inputCls}
                     placeholder="Focus gaming/anime brands, upcoming conventions, sponsor rate adjustments..."
-                    value={g.plan}
+                    value={g.plan || ''}
                     onChange={e => s.setGoal({ plan: e.target.value })}
                 />
             </section>
