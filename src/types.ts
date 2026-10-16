@@ -129,3 +129,14 @@ export interface LiveSyncReport {
     gmailCount?: number;
     gmailError?: string;
 }
+
+export interface Reimbursement {
+    id: string;
+    brandName: string;
+    productName: string;
+    amountPaid: number;
+    purchaseDate: string;
+    reimbursed: boolean;
+    reimbursedDate?: string;
+    notes?: string;
+}

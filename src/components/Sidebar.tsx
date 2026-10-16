@@ -1,64 +1,50 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Briefcase, Inbox, DollarSign, Calendar, BarChart3, User, Award } from 'lucide-react';
-import { useStore } from '../context/store';
+import { LayoutDashboard, Inbox, DollarSign, Calendar, Lightbulb, Receipt, Settings, ShoppingBag } from 'lucide-react';
+
+const NAV_ITEMS = [
+    { label: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { label: 'Inbound Leads', path: '/inbox', icon: Inbox },
+    { label: 'Deals & Revenue', path: '/deals', icon: DollarSign },
+    { label: 'Reimbursements', path: '/reimbursements', icon: ShoppingBag },
+    { label: 'Deliverables Calendar', path: '/calendar', icon: Calendar },
+    { label: 'Content Ideas', path: '/ideas', icon: Lightbulb },
+    { label: 'Monthly Review', path: '/review', icon: Receipt },
+    { label: 'Settings', path: '/settings', icon: Settings },
+];
 
 export default function Sidebar() {
-    const { profile } = useStore();
-
-    const navItems = [
-        { to: '/', label: 'Home', icon: Home },
-        { to: '/collaborations', label: 'Collaborations', icon: Briefcase },
-        { to: '/brands', label: 'Brands I Worked With', icon: Award },
-        { to: '/inbox', label: 'Inbox & DMs', icon: Inbox },
-        { to: '/money', label: 'Money & CFO', icon: DollarSign },
-        { to: '/content', label: 'Content Planner', icon: Calendar },
-        { to: '/review', label: 'Monthly Review', icon: BarChart3 },
-        { to: '/profile', label: 'Creator Profile', icon: User },
-    ];
-
     return (
-        <aside className="w-64 min-h-screen anime-glass border-r border-purple-500/20 p-5 flex flex-col justify-between shrink-0">
-            <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center font-black text-white text-lg shadow-lg shadow-pink-500/30">
-                        ✨
-                    </div>
-                    <div>
-                        <h1 className="text-base font-black text-white leading-none">Creator HQ</h1>
-                        <p className="text-[10px] text-pink-400 font-bold tracking-wider mt-0.5">Anime Night Edition 🌙</p>
-                    </div>
+        <aside className="w-64 border-r border-purple-500/20 bg-[#0d0417]/80 backdrop-blur-xl p-6 flex flex-col justify-between shrink-0 min-h-screen">
+            <div className="space-y-8">
+                <div>
+                    <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-indigo-400 font-display tracking-tight">
+                        Creator-HQ
+                    </h1>
+                    <p className="text-[10px] font-extrabold uppercase tracking-widest text-pink-400/80 mt-0.5">
+                        Brand Partnerships Studio
+                    </p>
                 </div>
 
                 <nav className="space-y-1.5">
-                    {navItems.map((item) => {
+                    {NAV_ITEMS.map(item => {
                         const Icon = item.icon;
                         return (
                             <NavLink
-                                key={item.to}
-                                to={item.to}
+                                key={item.path}
+                                to={item.path}
                                 className={({ isActive }) =>
-                                    `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${isActive
-                                        ? 'bg-gradient-to-r from-pink-500/80 to-purple-600/80 text-white shadow-md shadow-pink-500/20 border border-pink-400/30'
-                                        : 'text-purple-200/70 hover:text-white hover:bg-purple-950/40'
+                                    `flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-extrabold transition-all duration-200 cursor-pointer ${isActive
+                                        ? 'bg-gradient-to-r from-pink-500/20 to-purple-600/30 text-white border border-pink-500/40 shadow-lg shadow-purple-950/50'
+                                        : 'text-purple-300/70 hover:text-white hover:bg-purple-900/30'
                                     }`
                                 }
                             >
-                                <Icon className="w-4 h-4" />
+                                <Icon className="w-4 h-4 text-pink-400" />
                                 <span>{item.label}</span>
                             </NavLink>
                         );
                     })}
                 </nav>
-            </div>
-
-            <div className="pt-4 border-t border-purple-500/20 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-pink-500/30 border border-pink-400/40 flex items-center justify-center font-bold text-xs text-pink-300">
-                    {profile.name ? profile.name.charAt(0) : 'J'}
-                </div>
-                <div className="overflow-hidden">
-                    <p className="text-xs font-bold text-white truncate">{profile.name || 'Janie V'}</p>
-                    <p className="text-[10px] text-purple-300/70 truncate">{profile.handle || '@janiev.ugc'}</p>
-                </div>
             </div>
         </aside>
     );

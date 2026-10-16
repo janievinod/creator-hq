@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState, type Dispatch, type SetStateAction, type ReactNode } from 'react';
-import type { Brand, CreatorProfile, Deal, DealStatus, Deliverable, Expense, Goal, Idea, IdeaStatus, LiveSyncReport, Message, Payment } from '../types';
+import type { Brand, CreatorProfile, Deal, DealStatus, Deliverable, Expense, Goal, Idea, IdeaStatus, LiveSyncReport, Message, Payment, Reimbursement } from '../types';
 
 interface StoreContextType {
     profile: CreatorProfile;
@@ -13,6 +13,7 @@ interface StoreContextType {
     messages: Message[];
     ideas: Idea[];
     goal: Goal;
+    reimbursements: Reimbursement[];
     syncReport: LiveSyncReport | null;
     isSyncing: boolean;
     startingBankBalance: number;
@@ -30,6 +31,8 @@ interface StoreContextType {
     addIdea: (title: string, notes?: string, platform?: string) => void;
     setIdeaStatus: (id: string, status: IdeaStatus) => void;
     setGoal: (patch: Partial<Goal>) => void;
+    addReimbursement: (item: Omit<Reimbursement, 'id' | 'reimbursed'>) => void;
+    toggleReimbursement: (id: string) => void;
     syncInboxes: () => Promise<LiveSyncReport>;
     clearAllData: () => void;
 }
@@ -120,6 +123,15 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         }
     });
 
+    const [reimbursements, setReimbursements] = useState<Reimbursement[]>(() => {
+        try {
+            const saved = localStorage.getItem('hq_reimbursements');
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    });
+
     const [goal, setGoalData] = useState<Goal>(() => {
         try {
             const saved = localStorage.getItem('hq_goal');
@@ -141,6 +153,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => { localStorage.setItem('hq_deliverables', JSON.stringify(deliverables)); }, [deliverables]);
     useEffect(() => { localStorage.setItem('hq_messages', JSON.stringify(messages)); }, [messages]);
     useEffect(() => { localStorage.setItem('hq_ideas', JSON.stringify(ideas)); }, [ideas]);
+    useEffect(() => { localStorage.setItem('hq_reimbursements', JSON.stringify(reimbursements)); }, [reimbursements]);
     useEffect(() => { localStorage.setItem('hq_goal', JSON.stringify(goal)); }, [goal]);
 
     const setStartingBankBalance = (val: number) => setStartingBankBalanceState(val);
@@ -159,13 +172,21 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         setDeliverables([]);
         setMessages([]);
         setIdeas([]);
+        setReimbursements([]);
         setGoalData({ revenueTarget: 0, dealsTarget: 0, outreachTarget: 0, outreachDone: 0, contentTarget: 0, contentDone: 0, plan: '' });
     };
 
     const syncInboxes = async (): Promise<LiveSyncReport> => {
         setIsSyncing(true);
         try {
-            const report: LiveSyncReport = { timestamp: new Date().toISOString(), status: 'success', messagesFetched: messages.length, sourcesSynced: ['instagram', 'gmail'] };
+            const report: LiveSyncReport = {
+                timestamp: new Date().toISOString(),
+                status: 'success',
+                messagesFetched: messages.length,
+                totalNewMessages: messages.filter(m => !m.dismissed).length,
+                mode: profile.syncMode || 'live',
+                sourcesSynced: ['instagram', 'gmail'],
+            };
             setSyncReport(report);
             setProfile(prev => ({ ...prev, lastSyncTimestamp: report.timestamp }));
             return report;
@@ -226,19 +247,44 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     const addMessage = (msg: Omit<Message, 'id'>) => setMessages(prev => [{ ...msg, id: `m_${Date.now()}` }, ...prev]);
     const patchMessage = (id: string, patch: Partial<Message>) => setMessages(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m));
 
-    // Fixed addIdea implementation with default platform property matching the Idea interface
     const addIdea = (title: string, notes?: string, platform: string = 'Instagram') =>
         setIdeas(prev => [{ id: `i_${Date.now()}`, title, notes, platform, status: 'idea' }, ...prev]);
 
     const setIdeaStatus = (id: string, status: IdeaStatus) => setIdeas(prev => prev.map(i => i.id === id ? { ...i, status } : i));
     const setGoal = (patch: Partial<Goal>) => setGoalData(prev => ({ ...prev, ...patch }));
 
+    const addReimbursement = (item: Omit<Reimbursement, 'id' | 'reimbursed'>) => {
+        const newItem: Reimbursement = {
+            ...item,
+            id: `r_${Date.now()}`,
+            reimbursed: false,
+        };
+        setReimbursements(prev => [newItem, ...prev]);
+    };
+
+    const toggleReimbursement = (id: string) => {
+        setReimbursements(prev =>
+            prev.map(r => {
+                if (r.id === id) {
+                    const isNowReimbursed = !r.reimbursed;
+                    return {
+                        ...r,
+                        reimbursed: isNowReimbursed,
+                        reimbursedDate: isNowReimbursed ? new Date().toISOString().split('T')[0] : undefined,
+                    };
+                }
+                return r;
+            })
+        );
+    };
+
     return (
         <StoreContext.Provider value={{
-            profile, setProfile, brands, deals, payments, expenses, deliverables, messages, ideas, goal,
+            profile, setProfile, brands, deals, payments, expenses, deliverables, messages, ideas, goal, reimbursements,
             syncReport, isSyncing, startingBankBalance, setStartingBankBalance, setSyncMode,
             addDeal, updateDeal, setDealStatus, deleteDeal, addPayment, addExpense, toggleDeliverable,
-            addMessage, patchMessage, addIdea, setIdeaStatus, setGoal, syncInboxes, clearAllData
+            addMessage, patchMessage, addIdea, setIdeaStatus, setGoal, addReimbursement, toggleReimbursement,
+            syncInboxes, clearAllData
         }}>
             {children}
         </StoreContext.Provider>
