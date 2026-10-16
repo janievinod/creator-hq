@@ -1,55 +1,59 @@
-export type DealStatus = 'in_progress' | 'confirmed' | 'completed' | 'paid' | 'declined';
+export type DealStatus = 'lead' | 'negotiating' | 'confirmed' | 'in_progress' | 'posted' | 'paid' | 'completed' | 'declined';
 export type DealType = 'paid' | 'barter' | 'hybrid';
-export type IdeaStatus = 'idea' | 'scripted' | 'filmed' | 'edited' | 'posted';
+export type MessageSource = 'instagram' | 'gmail' | 'manual';
+export type IdeaStatus = 'idea' | 'scripted' | 'filmed' | 'posted' | 'brainstorm' | 'scripting' | 'filming' | 'editing' | 'scheduled' | 'published';
 
-export interface CreatorProfile {
-    name: string;
-    handle: string;
+export interface Deal {
+    id: string;
+    brandId?: string;
+    title: string;
+    type: DealType;
+    status: DealStatus;
+    agreedFee: number;
+    barterValue?: number;
+    dueDate?: string;
+    completedDate?: string;
+    paymentTimeline?: string;
+    deliverableLinks?: string[];
+    notes?: string;
+}
+
+export interface DealForm {
+    brandName: string;
+    title: string;
+    type: DealType;
+    status: DealStatus;
+    agreedFee: number | string;
+    barterValue?: number | string;
+    dueDate?: string;
+    paymentTimeline: string;
+    notes: string;
     niche: string;
-    email: string;
-    instagramConnected: boolean;
-    gmailConnected: boolean;
-    mediaKitRate: number;
-    lastSyncTimestamp?: string;
 }
 
 export interface Brand {
     id: string;
     name: string;
+    niche: string;
     instagram?: string;
     email?: string;
-    logoUrl?: string;
-    niche?: string;
-}
-
-export interface Deal {
-    id: string;
-    brandId: string;
-    title: string;
-    type: DealType;
-    status: DealStatus;
-    agreedFee: number;
-    dueDate: string;
-    completedDate?: string;
-    paymentTimeline?: string; // e.g., '30_days', '45_days', '60_days', 'custom'
     notes?: string;
-    deliverableLinks?: string[]; // Multiple video / Reel links
-    monthYear?: string;
 }
 
-export interface Payment {
+export interface Message {
     id: string;
-    dealId: string;
-    amount: number;
-    date: string;
-}
-
-export interface Expense {
-    id: string;
-    dealId: string;
-    note: string;
-    amount: number;
-    date: string;
+    brandName?: string;
+    from?: string;
+    source: MessageSource;
+    snippet?: string;
+    text?: string;
+    date?: string;
+    receivedOn?: string;
+    kind: 'paid' | 'barter' | 'inquiry' | 'maybe' | 'none';
+    amount?: number;
+    dismissed?: boolean;
+    converted?: boolean;
+    rawId?: string;
 }
 
 export interface Deliverable {
@@ -60,21 +64,22 @@ export interface Deliverable {
     done: boolean;
 }
 
-export interface Message {
+export interface Payment {
     id: string;
-    source: 'instagram' | 'gmail';
-    from: string;
-    text: string;
-    receivedOn: string;
-    kind: 'paid' | 'barter' | 'inquiry';
-    amount?: number;
+    dealId: string;
+    amount: number;
+    date: string;
+    note?: string;
 }
 
-export interface Idea {
+export interface Expense {
     id: string;
-    title: string;
-    notes?: string;
-    status: IdeaStatus;
+    dealId?: string;
+    title?: string;
+    amount: number;
+    date: string;
+    category?: string;
+    note?: string;
 }
 
 export interface Goal {
@@ -87,9 +92,40 @@ export interface Goal {
     plan: string;
 }
 
+export interface Idea {
+    id: string;
+    title: string;
+    status: IdeaStatus;
+    platform: string;
+    notes?: string;
+}
+
+export interface CreatorProfile {
+    name: string;
+    handle: string;
+    mediaKitRate: number;
+    niche: string;
+    email: string;
+    lastSyncTimestamp: string;
+    syncMode?: 'mock' | 'live';
+    instagramAccessToken?: string;
+    instagramClientId?: string;
+    instagramUserId?: string;
+    gmailAccessToken?: string;
+    gmailClientId?: string;
+}
+
 export interface LiveSyncReport {
+    mode?: 'mock' | 'live';
+    status?: string;
     timestamp: string;
-    status: 'success' | 'error';
-    messagesFetched: number;
-    sourcesSynced: string[];
+    totalNewMessages?: number;
+    messagesFetched?: number;
+    sourcesSynced?: string[];
+    instagramStatus?: string;
+    instagramCount?: number;
+    instagramError?: string;
+    gmailStatus?: string;
+    gmailCount?: number;
+    gmailError?: string;
 }
