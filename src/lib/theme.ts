@@ -13,6 +13,9 @@ export const STATUS_META: Record<DealStatus, { label: string; cls: string }> = {
     paid: { label: 'Payment Done', cls: 'bg-emerald-950/60 text-emerald-300 border-emerald-500/30' },
     completed: { label: 'Completed', cls: 'bg-slate-900 text-slate-300 border-slate-700' },
     declined: { label: 'Declined', cls: 'bg-rose-950/60 text-rose-300 border-rose-500/30' },
+    negotiation: { label: 'Negotiating', cls: 'bg-sky-950/60 text-sky-300 border-sky-500/30' },
+    active: { label: 'Active', cls: 'bg-purple-950/60 text-purple-300 border-purple-500/30' },
+    content_review: { label: 'Content Review', cls: 'bg-indigo-950/60 text-indigo-300 border-indigo-500/30' },
 };
 
 export const btnCls = 'rounded-xl bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-purple-900/50 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer';

@@ -79,7 +79,7 @@ export default function Collaborations() {
         setEditBrandName(brand?.name || '');
         setEditTitle(deal.title);
         setEditFee(deal.agreedFee ? deal.agreedFee.toString() : '0');
-        setEditType(deal.type);
+        setEditType(deal.type || 'paid');
         setEditDueDate(deal.completedDate || deal.dueDate || new Date().toISOString().split('T')[0]);
         setEditTimeline(deal.paymentTimeline || '30-45_biz_days');
         setEditNotes(deal.notes || '');
