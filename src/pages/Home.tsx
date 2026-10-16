@@ -16,13 +16,21 @@ export default function Home({ onNavigate }: { onNavigate: (tab: string) => void
     const { currentTheme, themeConfig, setTheme } = useTheme();
 
     const [open, setOpen] = useState(false);
-    const received = cashReceivedInMonth(s.deals, s.payments, today);
-    const overdue = overdueBalance(s.deals, s.payments, today);
-    const progress = goalProgress(received, s.goal.revenueTarget);
-    const active = s.deals.filter(d => ['confirmed', 'in_progress', 'posted'].includes(d.status)).length;
-    const leads = s.messages.filter(m => !m.dismissed && !m.converted && m.kind !== 'none').length;
-    const upcoming = s.deliverables.filter(x => !x.done).sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 6);
-    const dealName = (id: string) => s.brands.find(b => b.id === s.deals.find(d => d.id === id)?.brandId)?.name ?? '';
+    const deals = s.deals || [];
+    const payments = s.payments || [];
+    const messages = s.messages || [];
+    const deliverables = s.deliverables || [];
+    const brands = s.brands || [];
+    const goal = s.goal || { revenueTarget: 50000 };
+    const profile = s.profile || { name: 'Creator', handle: '@creator' };
+
+    const received = cashReceivedInMonth(deals, payments, today);
+    const overdue = overdueBalance(deals, payments, today);
+    const progress = goalProgress(received, goal.revenueTarget ?? 0);
+    const active = deals.filter(d => ['confirmed', 'in_progress', 'posted', 'active', 'content_review'].includes(d.status)).length;
+    const leads = messages.filter(m => !m.dismissed && !m.converted && m.kind !== 'none').length;
+    const upcoming = deliverables.filter(x => !x.done).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || '')).slice(0, 6);
+    const dealName = (id: string) => brands.find(b => b.id === deals.find(d => d.id === id)?.brandId)?.name ?? '';
 
     return (
         <div className="p-8 space-y-8 max-w-7xl mx-auto">
@@ -70,10 +78,10 @@ export default function Home({ onNavigate }: { onNavigate: (tab: string) => void
                             </span>
                         </div>
                         <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight bg-gradient-to-r ${themeConfig.primaryText} bg-clip-text text-transparent font-display`}>
-                            Welcome back, {s.profile.name} 🌙
+                            Welcome back, {profile.name} 🌙
                         </h1>
                         <p className="text-xs sm:text-sm text-purple-300 font-medium">
-                            {formatINR(received)} collected this month · Monthly quest target {formatINR(s.goal.revenueTarget)}
+                            {formatINR(received)} collected this month · Monthly quest target {formatINR(goal.revenueTarget ?? 0)}
                         </p>
                     </div>
 
@@ -99,7 +107,7 @@ export default function Home({ onNavigate }: { onNavigate: (tab: string) => void
             {/* Glowing Stat Cards Grid */}
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard emoji="💰" label="Collected This Month" value={formatINR(received)} hint="Real bank credits" />
-                <StatCard emoji="⏳" label="Total Outstanding" value={formatINR(totalOutstanding(s.deals, s.payments))} hint="Committed deal fees" />
+                <StatCard emoji="⏳" label="Total Outstanding" value={formatINR(totalOutstanding(deals, payments))} hint="Committed deal fees" />
 
                 {/* Clickable Overdue Invoices Card Container */}
                 <div
@@ -150,7 +158,7 @@ export default function Home({ onNavigate }: { onNavigate: (tab: string) => void
                         </div>
                         <p className="text-xs text-purple-300/80 mb-3">Realized creator revenue across all sponsorship deals</p>
                     </div>
-                    <CashChart deals={s.deals} payments={s.payments} today={today} />
+                    <CashChart deals={deals} payments={payments} today={today} />
                 </section>
 
                 <section className={`rounded-3xl border ${themeConfig.borderColor} ${themeConfig.cardBg} p-6 shadow-xl`}>
@@ -182,7 +190,7 @@ export default function Home({ onNavigate }: { onNavigate: (tab: string) => void
                                             className="h-4 w-4 rounded border-purple-500 text-pink-500 focus:ring-pink-400 cursor-pointer"
                                         />
                                         <div className="flex-1 min-w-0">
-                                            <span className="font-bold text-white block truncate">{x.title}</span>
+                                            <span className="font-bold text-white block truncate">{x.title || x.type || 'Deliverable'}</span>
                                             <span className="text-purple-400 text-[11px] font-medium">{dealName(x.dealId)}</span>
                                         </div>
                                         <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border shrink-0 ${left < 0

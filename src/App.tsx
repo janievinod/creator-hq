@@ -60,8 +60,10 @@ export default function App() {
                 <Route path="/inbox" element={<Inbox />} />
                 <Route path="/money" element={<Money />} />
                 <Route path="/content" element={<Content />} />
+                <Route path="/ideas" element={<Content />} />
                 <Route path="/review" element={<MonthlyReview />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Profile />} />
                 <Route path="/reimbursements" element={<Reimbursements />} />
                 <Route path="/calendar" element={<Calendar />} />
               </Routes>

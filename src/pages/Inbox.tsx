@@ -47,8 +47,8 @@ export default function Inbox() {
         },
     });
 
-    const inbox = s.messages.filter(m => !m.dismissed);
-    const isLive = s.profile.syncMode === 'live';
+    const inbox = (s.messages || []).filter(m => !m.dismissed);
+    const isLive = s.profile?.syncMode === 'live';
 
     return (
         <div className="p-8 space-y-8 max-w-7xl mx-auto">
@@ -62,7 +62,7 @@ export default function Inbox() {
                     {/* Live vs Demo Toggle Switch */}
                     <div className="flex items-center gap-1.5 p-1 rounded-2xl anime-glass border border-purple-500/30">
                         <button
-                            onClick={() => s.setSyncMode('mock')}
+                            onClick={() => s.setSyncMode?.('mock')}
                             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${!isLive
                                     ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-purple-900/50'
                                     : 'text-purple-300 hover:text-white'
@@ -71,7 +71,7 @@ export default function Inbox() {
                             ✨ Demo Simulation
                         </button>
                         <button
-                            onClick={() => s.setSyncMode('live')}
+                            onClick={() => s.setSyncMode?.('live')}
                             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${isLive
                                     ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-purple-900/50'
                                     : 'text-purple-300 hover:text-white'
@@ -187,7 +187,7 @@ export default function Inbox() {
                             </div>
 
                             <p className="mt-4 text-xs text-purple-100 bg-purple-950/40 p-4 rounded-2xl border border-purple-500/20 leading-relaxed font-normal">
-                                {m.text}
+                                {m.text || ''}
                             </p>
 
                             <div className="mt-4 flex items-center gap-3">

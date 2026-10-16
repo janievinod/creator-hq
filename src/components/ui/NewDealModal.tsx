@@ -14,16 +14,16 @@ interface NewDealModalProps {
 export default function NewDealModal({ open, onClose, prefill, onSaved }: NewDealModalProps) {
     const { addDeal } = useStore();
     const [form, setForm] = useState<DealForm>({
-        brandName: prefill?.brandName || '',
-        title: prefill?.title || '',
+        title: prefill?.title ?? '',
+        brandName: prefill?.brandName ?? '',
         type: prefill?.type || 'paid',
         status: prefill?.status || 'negotiating',
         agreedFee: prefill?.agreedFee ?? '',
         barterValue: prefill?.barterValue ?? '',
-        dueDate: prefill?.dueDate || '',
-        paymentTimeline: prefill?.paymentTimeline || '',
-        notes: prefill?.notes || '',
-        niche: prefill?.niche || '',
+        dueDate: prefill?.dueDate ?? '',
+        paymentTimeline: prefill?.paymentTimeline ?? '',
+        notes: prefill?.notes ?? '',
+        niche: prefill?.niche ?? '',
     });
 
     if (!open) return null;

@@ -28,11 +28,13 @@ function Bar({ label, pct, grad, right }: { label: string; pct: number; grad: st
 export default function MonthlyReview() {
     const s = useStore();
     const today = useToday();
-    const g = s.goal;
-    const received = cashReceivedInMonth(s.deals, s.payments, today);
-    const remaining = Math.max(0, g.revenueTarget - received);
-    const paidDeals = s.deals.filter(isCommittedPaidDeal);
-    const avg = paidDeals.length ? Math.round(paidDeals.reduce((a, d) => a + d.agreedFee, 0) / paidDeals.length) : 0;
+    const g = s.goal || { revenueTarget: 0 };
+    const deals = s.deals || [];
+    const payments = s.payments || [];
+    const received = cashReceivedInMonth(deals, payments, today);
+    const remaining = Math.max(0, (g.revenueTarget ?? 0) - received);
+    const paidDeals = deals.filter(isCommittedPaidDeal);
+    const avg = paidDeals.length ? Math.round(paidDeals.reduce((a, d) => a + (d.agreedFee || d.payout || 0), 0) / paidDeals.length) : 0;
     const num = (v: string) => Math.max(0, Number(v) || 0);
 
     return (
@@ -46,27 +48,27 @@ export default function MonthlyReview() {
             <div className="grid gap-5 md:grid-cols-2">
                 <Bar
                     label="💰 Revenue Realized"
-                    pct={goalProgress(received, g.revenueTarget)}
+                    pct={goalProgress(received, g.revenueTarget ?? 0)}
                     grad="from-pink-500 via-purple-500 to-indigo-500"
-                    right={`${formatINR(received)} / ${formatINR(g.revenueTarget)}`}
+                    right={`${formatINR(received)} / ${formatINR(g.revenueTarget ?? 0)}`}
                 />
                 <Bar
                     label="🤝 Confirmed Partnerships"
-                    pct={goalProgress(paidDeals.length, g.dealsTarget || 0)}
+                    pct={goalProgress(paidDeals.length, g.dealsTarget ?? 0)}
                     grad="from-purple-500 to-pink-500"
-                    right={`${paidDeals.length} / ${g.dealsTarget || 0} deals`}
+                    right={`${paidDeals.length} / ${g.dealsTarget ?? 0} deals`}
                 />
                 <Bar
                     label="📨 Brand Pitches & Outreach"
-                    pct={goalProgress(g.outreachDone || 0, g.outreachTarget || 0)}
+                    pct={goalProgress(g.outreachDone ?? 0, g.outreachTarget ?? 0)}
                     grad="from-sky-400 to-indigo-500"
-                    right={`${g.outreachDone || 0} / ${g.outreachTarget || 0} pitches`}
+                    right={`${g.outreachDone ?? 0} / ${g.outreachTarget ?? 0} pitches`}
                 />
                 <Bar
                     label="🎬 Content Published"
-                    pct={goalProgress(g.contentDone || 0, g.contentTarget || 0)}
+                    pct={goalProgress(g.contentDone ?? 0, g.contentTarget ?? 0)}
                     grad="from-amber-400 to-pink-500"
-                    right={`${g.contentDone || 0} / ${g.contentTarget || 0} posts`}
+                    right={`${g.contentDone ?? 0} / ${g.contentTarget ?? 0} posts`}
                 />
             </div>
 
