@@ -5,13 +5,19 @@ export function isCommittedPaidDeal(d: Deal) {
 }
 
 export function receivedForDeal(deal: Deal, payments: Payment[] = []) {
+    if (deal.status !== 'paid') return 0;
     const safePayments = Array.isArray(payments) ? payments : [];
-    return safePayments.filter(p => p.dealId === deal.id).reduce((sum, p) => sum + p.amount, 0);
+    const fromPayments = safePayments.filter(p => p.dealId === deal.id).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    const dealFee = Number(deal.agreedFee ?? deal.payout ?? 0);
+    return Math.max(fromPayments, dealFee);
 }
 
 export function outstandingForDeal(deal: Deal, payments: Payment[] = []) {
-    if (!isCommittedPaidDeal(deal)) return 0;
-    return Math.max(0, (deal.agreedFee || deal.payout || 0) - receivedForDeal(deal, payments));
+    if (!isCommittedPaidDeal(deal) || deal.status === 'paid') return 0;
+    const fee = Number(deal.agreedFee ?? deal.payout ?? 0);
+    const safePayments = Array.isArray(payments) ? payments : [];
+    const received = safePayments.filter(p => p.dealId === deal.id).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    return Math.max(0, fee - received);
 }
 
 export function totalOutstanding(deals: Deal[] = [], payments: Payment[] = []) {
@@ -19,29 +25,29 @@ export function totalOutstanding(deals: Deal[] = [], payments: Payment[] = []) {
     return safeDeals.reduce((sum, d) => sum + outstandingForDeal(d, payments), 0);
 }
 
-export function cashReceivedInMonth(_deals: Deal[] = [], payments: Payment[] = [], today: Date = new Date()) {
-    const safePayments = Array.isArray(payments) ? payments : [];
-    const y = today.getFullYear();
-    const m = today.getMonth();
-    return safePayments.filter(p => {
-        if (!p.date) return false;
-        const d = new Date(p.date);
-        return d.getFullYear() === y && d.getMonth() === m;
-    }).reduce((sum, p) => sum + p.amount, 0);
+export function cashReceivedInMonth(deals: Deal[] = [], payments: Payment[] = []) {
+    const safeDeals = Array.isArray(deals) ? deals : [];
+    // Directly sum agreed fees of deals strictly marked as 'paid'
+    return safeDeals
+        .filter(d => d.status === 'paid')
+        .reduce((sum, d) => sum + (Number(d.agreedFee ?? d.payout ?? 0)), 0);
 }
 
 export function overdueBalance(deals: Deal[] = [], payments: Payment[] = [], today: Date = new Date()) {
     const safeDeals = Array.isArray(deals) ? deals : [];
     const todayIso = today.toISOString().split('T')[0];
     return safeDeals
-        .filter(d => isCommittedPaidDeal(d) && d.dueDate && d.dueDate < todayIso)
+        .filter(d => isCommittedPaidDeal(d) && d.status !== 'paid' && d.dueDate && d.dueDate < todayIso)
         .reduce((sum, d) => sum + outstandingForDeal(d, payments), 0);
 }
 
 export function dealProfit(deal: Deal, expenses: Expense[] = []) {
     const safeExpenses = Array.isArray(expenses) ? expenses : [];
-    const exp = safeExpenses.filter(e => e.dealId === deal.id).reduce((s, e) => s + e.amount, 0);
-    return (deal.agreedFee || deal.payout || 0) - exp;
+    const exp = safeExpenses
+        .filter(e => e.dealId === deal.id)
+        .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const fee = Number(deal.agreedFee ?? deal.payout ?? 0);
+    return fee - exp;
 }
 
 export function goalProgress(current: number, target: number) {

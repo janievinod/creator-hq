@@ -50,6 +50,8 @@ export interface StoreContextType {
     setGoal: (patch: Partial<Goal>) => void;
     addReimbursement: (item: Omit<Reimbursement, 'id' | 'reimbursed'>) => void;
     toggleReimbursement: (id: string) => void;
+    deleteReimbursement: (id: string) => void;
+    updateReimbursement: (id: string, updatedFields: Partial<Reimbursement>) => void;
     syncInboxes: () => Promise<LiveSyncReport>;
     clearAllData: () => void;
 }
@@ -79,6 +81,8 @@ const DEFAULT_BRANDS: Brand[] = [
     { id: 'b2', name: 'Bunsik Bites', category: 'Food', niche: 'Food' },
     { id: 'b3', name: 'Kris Amour', category: 'High Fashion', niche: 'Fashion' },
     { id: 'b4', name: 'Ghar Soaps', category: 'Skincare', niche: 'Skincare' },
+    { id: 'b5', name: 'Biodance', category: 'Skincare', niche: 'Skincare' },
+    { id: 'b6', name: 'd\'Alba', category: 'Skincare', niche: 'Skincare' },
 ];
 
 const DEFAULT_DEALS: Deal[] = [
@@ -88,8 +92,8 @@ const DEFAULT_DEALS: Deal[] = [
         title: 'Korean Restaurant Vlog - 1 Reel',
         type: 'paid',
         status: 'confirmed',
-        agreedFee: 4000,
-        payout: 4000,
+        agreedFee: 12500,
+        payout: 12500,
         dueDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
         notes: '1 Reel with restaurant ambiance & menu highlight',
     },
@@ -99,8 +103,8 @@ const DEFAULT_DEALS: Deal[] = [
         title: 'Korean Food Experience in Namme Chennai',
         type: 'paid',
         status: 'in_progress',
-        agreedFee: 2500,
-        payout: 2500,
+        agreedFee: 11968,
+        payout: 11968,
         dueDate: new Date(Date.now() + 86400000 * 10).toISOString().split('T')[0],
         notes: 'Story integration + Reel review',
     },
@@ -110,8 +114,8 @@ const DEFAULT_DEALS: Deal[] = [
         title: 'Sunscreen + Serum - 1 Reel',
         type: 'paid',
         status: 'posted',
-        agreedFee: 1000,
-        payout: 1000,
+        agreedFee: 3500,
+        payout: 3500,
         dueDate: new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0],
         notes: 'Cosmetics unboxing reel',
     },
@@ -120,7 +124,7 @@ const DEFAULT_DEALS: Deal[] = [
         brandId: 'b4',
         title: 'Magic FaceWash - 1 Reel',
         type: 'paid',
-        status: 'paid',
+        status: 'in_progress',
         agreedFee: 2200,
         payout: 2200,
         dueDate: new Date(Date.now() - 86400000 * 15).toISOString().split('T')[0],
@@ -128,15 +132,7 @@ const DEFAULT_DEALS: Deal[] = [
     },
 ];
 
-const DEFAULT_PAYMENTS: Payment[] = [
-    {
-        id: 'p1',
-        dealId: 'd4',
-        amount: 2200,
-        date: new Date().toISOString().split('T')[0],
-        note: 'Direct NEFT transfer',
-    },
-];
+const DEFAULT_PAYMENTS: Payment[] = [];
 
 const DEFAULT_DELIVERABLES: Deliverable[] = [
     { id: 'del1', dealId: 'd1', title: '1x IG Reel', type: '1x IG Reel', dueDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0], done: false },
@@ -181,7 +177,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         try {
             const saved = localStorage.getItem('hq_profile');
             if (saved) return { ...DEFAULT_PROFILE, ...JSON.parse(saved) };
-        } catch {}
+        } catch { }
         return DEFAULT_PROFILE;
     });
 
@@ -197,7 +193,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) return parsed;
             }
-        } catch {}
+        } catch { }
         return DEFAULT_BRANDS;
     });
 
@@ -208,7 +204,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) return parsed;
             }
-        } catch {}
+        } catch { }
         return DEFAULT_DEALS;
     });
 
@@ -217,9 +213,9 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
             const saved = localStorage.getItem('hq_payments');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                if (Array.isArray(parsed)) return parsed;
             }
-        } catch {}
+        } catch { }
         return DEFAULT_PAYMENTS;
     });
 
@@ -230,7 +226,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed)) return parsed;
             }
-        } catch {}
+        } catch { }
         return [];
     });
 
@@ -241,7 +237,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) return parsed;
             }
-        } catch {}
+        } catch { }
         return DEFAULT_DELIVERABLES;
     });
 
@@ -252,7 +248,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) return parsed;
             }
-        } catch {}
+        } catch { }
         return DEFAULT_MESSAGES;
     });
 
@@ -263,7 +259,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) return parsed;
             }
-        } catch {}
+        } catch { }
         return DEFAULT_IDEAS;
     });
 
@@ -274,7 +270,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed)) return parsed;
             }
-        } catch {}
+        } catch { }
         return [];
     });
 
@@ -287,7 +283,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
                 const parsed = JSON.parse(saved);
                 return { ...DEFAULT_GOAL, ...parsed, revenueTarget: parsed.revenueTarget ?? DEFAULT_GOAL.revenueTarget };
             }
-        } catch {}
+        } catch { }
         return DEFAULT_GOAL;
     });
 
@@ -405,18 +401,60 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         setDeals(prevDeals =>
             prevDeals.map(d => {
                 if (d.id === dealId) {
-                    return {
+                    const updated = {
                         ...d,
                         ...updatedFields,
                         brandId: targetBrandId || d.brandId,
                     };
+
+                    if (updatedFields.status === 'paid' && d.status !== 'paid') {
+                        const amount = updated.agreedFee || updated.payout || 0;
+                        const existingPayment = payments.find(p => p.dealId === dealId);
+                        if (!existingPayment && amount > 0) {
+                            const newPayment: Payment = {
+                                id: `p_${Date.now()}`,
+                                dealId,
+                                amount,
+                                date: new Date().toISOString().split('T')[0],
+                                note: 'Marked as paid',
+                            };
+                            setPayments(prev => [...prev, newPayment]);
+                        }
+                    }
+
+                    return updated;
                 }
                 return d;
             })
         );
     };
 
-    const setDealStatus = (id: string, status: DealStatus) => setDeals(prev => prev.map(d => d.id === id ? { ...d, status } : d));
+    const setDealStatus = (id: string, status: DealStatus) => {
+        setDeals(prev =>
+            prev.map(d => {
+                if (d.id === id) {
+                    const updated = { ...d, status };
+                    if (status === 'paid' && d.status !== 'paid') {
+                        const amount = d.agreedFee || d.payout || 0;
+                        const existingPayment = payments.find(p => p.dealId === id);
+                        if (!existingPayment && amount > 0) {
+                            const newPayment: Payment = {
+                                id: `p_${Date.now()}`,
+                                dealId: id,
+                                amount,
+                                date: new Date().toISOString().split('T')[0],
+                                note: 'Marked as paid',
+                            };
+                            setPayments(pArr => [...pArr, newPayment]);
+                        }
+                    }
+                    return updated;
+                }
+                return d;
+            })
+        );
+    };
+
     const deleteDeal = (id: string) => setDeals(prev => prev.filter(d => d.id !== id));
     const addPayment = (dealId: string, amount: number, date: string) => setPayments(prev => [...prev, { id: `p_${Date.now()}`, dealId, amount, date }]);
     const addExpense = (dealId: string, note: string, amount: number, date: string) => setExpenses(prev => [...prev, { id: `e_${Date.now()}`, dealId, note, title: note, amount, date }]);
@@ -455,13 +493,21 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         );
     };
 
+    const deleteReimbursement = (id: string) => {
+        setReimbursements(prev => prev.filter(r => r.id !== id));
+    };
+
+    const updateReimbursement = (id: string, updatedFields: Partial<Reimbursement>) => {
+        setReimbursements(prev => prev.map(r => r.id === id ? { ...r, ...updatedFields } : r));
+    };
+
     return (
         <StoreContext.Provider value={{
             profile, setProfile, brands, deals, payments, expenses, deliverables, messages, ideas, goal, reimbursements, leads,
             syncReport, isSyncing, startingBankBalance, setStartingBankBalance, setSyncMode,
             addDeal, updateDeal, setDealStatus, deleteDeal, addPayment, addExpense, toggleDeliverable,
             addMessage, patchMessage, addIdea, setIdeaStatus, setGoal, addReimbursement, toggleReimbursement,
-            syncInboxes, clearAllData
+            deleteReimbursement, updateReimbursement, syncInboxes, clearAllData
         }}>
             {children}
         </StoreContext.Provider>

@@ -3,7 +3,8 @@ import PageHeader from '../components/ui/PageHeader';
 import { useStore } from '../context/store';
 import { formatINR } from '../lib/format';
 import { btnCls, inputCls } from '../lib/theme';
-import { ShoppingBag, CheckCircle2, Clock, Plus, Receipt, Trash2 } from 'lucide-react';
+import { ShoppingBag, CheckCircle2, Clock, Plus, Receipt, Trash2, Edit3, X } from 'lucide-react';
+import type { Reimbursement } from '../types';
 
 interface ProductEntry {
     productName: string;
@@ -11,19 +12,25 @@ interface ProductEntry {
 }
 
 export default function Reimbursements() {
-    const { reimbursements, addReimbursement, toggleReimbursement, deals, brands } = useStore();
+    const { reimbursements, addReimbursement, toggleReimbursement, deleteReimbursement, updateReimbursement, deals, brands } = useStore();
 
     // Form state
     const [selectedDealId, setSelectedDealId] = useState('');
     const [purchaseDate, setPurchaseDate] = useState('');
     const [notes, setNotes] = useState('');
 
-    // Dynamic products list (starts with 1 product slot)
+    // Dynamic products list
     const [products, setProducts] = useState<ProductEntry[]>([
         { productName: '', amountPaid: '' }
     ]);
 
-    // Filter deals that are active/live (e.g. negotiation, active, or content_review)
+    // Edit Modal State
+    const [editingItem, setEditingItem] = useState<Reimbursement | null>(null);
+    const [editProductName, setEditProductName] = useState('');
+    const [editAmount, setEditAmount] = useState('');
+    const [editDate, setEditDate] = useState('');
+    const [editNotes, setEditNotes] = useState('');
+
     const activeDeals = deals.filter(d => d.status !== 'completed' && d.status !== 'declined');
 
     const handleProductChange = (index: number, field: keyof ProductEntry, value: string) => {
@@ -49,7 +56,6 @@ export default function Reimbursements() {
         const brandObj = brands.find(b => b.id === targetDeal?.brandId);
         const brandName = brandObj ? brandObj.name : 'Brand Collaboration';
 
-        // Add each product row as an individual reimbursement item tied to this brand/deal
         products.forEach(p => {
             if (p.productName.trim() && Number(p.amountPaid) > 0) {
                 addReimbursement({
@@ -62,11 +68,32 @@ export default function Reimbursements() {
             }
         });
 
-        // Reset form
         setSelectedDealId('');
         setProducts([{ productName: '', amountPaid: '' }]);
         setPurchaseDate('');
         setNotes('');
+    };
+
+    const handleOpenEdit = (item: Reimbursement) => {
+        setEditingItem(item);
+        setEditProductName(item.productName);
+        setEditAmount(item.amountPaid.toString());
+        setEditDate(item.purchaseDate);
+        setEditNotes(item.notes || '');
+    };
+
+    const handleSaveEdit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingItem) return;
+
+        updateReimbursement(editingItem.id, {
+            productName: editProductName,
+            amountPaid: Number(editAmount),
+            purchaseDate: editDate,
+            notes: editNotes || undefined,
+        });
+
+        setEditingItem(null);
     };
 
     const pendingTotal = reimbursements
@@ -103,6 +130,79 @@ export default function Reimbursements() {
                 </div>
             </div>
 
+            {/* EDIT MODAL */}
+            {editingItem && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="anime-glass p-6 rounded-3xl border border-purple-500/40 max-w-md w-full space-y-4 shadow-2xl">
+                        <div className="flex justify-between items-center border-b border-purple-500/20 pb-3">
+                            <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                <Edit3 className="w-5 h-5 text-pink-400" /> Edit Reimbursement
+                            </h3>
+                            <button onClick={() => setEditingItem(null)} className="text-purple-400 hover:text-white font-bold text-sm cursor-pointer">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveEdit} className="space-y-3">
+                            <div>
+                                <label className="text-[10px] text-purple-300 font-bold block mb-1">Product Name</label>
+                                <input
+                                    type="text"
+                                    value={editProductName}
+                                    onChange={(e) => setEditProductName(e.target.value)}
+                                    className={inputCls}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] text-purple-300 font-bold block mb-1">Amount (₹)</label>
+                                <div className="relative">
+                                    <span className="absolute left-3.5 top-2.5 text-xs font-bold text-pink-400">₹</span>
+                                    <input
+                                        type="number"
+                                        value={editAmount}
+                                        onChange={(e) => setEditAmount(e.target.value)}
+                                        className={`${inputCls} pl-7`}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] text-purple-300 font-bold block mb-1">Purchase Date</label>
+                                <input
+                                    type="date"
+                                    value={editDate}
+                                    onChange={(e) => setEditDate(e.target.value)}
+                                    className={inputCls}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] text-purple-300 font-bold block mb-1">Notes / Info</label>
+                                <input
+                                    type="text"
+                                    value={editNotes}
+                                    onChange={(e) => setEditNotes(e.target.value)}
+                                    className={inputCls}
+                                />
+                            </div>
+
+                            <div className="flex gap-2 pt-2">
+                                <button type="button" onClick={() => setEditingItem(null)} className="w-1/2 py-2.5 text-xs font-bold text-purple-300 bg-purple-950/60 rounded-xl hover:bg-purple-900/60 cursor-pointer">
+                                    Cancel
+                                </button>
+                                <button type="submit" className={`${btnCls} w-1/2 cursor-pointer`}>
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Entry Form */}
             <form onSubmit={handleAddBatch} className="rounded-3xl anime-glass border border-purple-500/30 p-6 shadow-xl space-y-6">
                 <div className="flex items-center gap-2">
@@ -113,7 +213,6 @@ export default function Reimbursements() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Deal Selector */}
                     <div>
                         <label className="block text-xs font-bold text-purple-300 mb-1.5">Select Active Collaboration</label>
                         <select
@@ -134,7 +233,6 @@ export default function Reimbursements() {
                         </select>
                     </div>
 
-                    {/* Purchase Date */}
                     <div>
                         <label className="block text-xs font-bold text-purple-300 mb-1.5">Purchase Date</label>
                         <input
@@ -146,7 +244,6 @@ export default function Reimbursements() {
                     </div>
                 </div>
 
-                {/* Dynamic Product Rows */}
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
                         <label className="text-xs font-bold text-purple-300">Products Purchased for this Collab</label>
@@ -162,20 +259,23 @@ export default function Reimbursements() {
                     {products.map((prod, index) => (
                         <div key={index} className="flex items-center gap-3">
                             <input
-                                className={inputCls}
+                                className={`${inputCls} flex-1`}
                                 placeholder={`Product ${index + 1} Name (e.g. Lipstick, Serum)`}
                                 value={prod.productName}
                                 onChange={e => handleProductChange(index, 'productName', e.target.value)}
                                 required
                             />
-                            <input
-                                type="number"
-                                className={`${inputCls} w-44 shrink-0`}
-                                placeholder="Amount (₹)"
-                                value={prod.amountPaid}
-                                onChange={e => handleProductChange(index, 'amountPaid', e.target.value)}
-                                required
-                            />
+                            <div className="relative w-44 shrink-0">
+                                <span className="absolute left-3.5 top-2.5 text-xs font-bold text-pink-400">₹</span>
+                                <input
+                                    type="number"
+                                    className={`${inputCls} pl-7`}
+                                    placeholder="Amount"
+                                    value={prod.amountPaid}
+                                    onChange={e => handleProductChange(index, 'amountPaid', e.target.value)}
+                                    required
+                                />
+                            </div>
                             {products.length > 1 && (
                                 <button
                                     type="button"
@@ -204,7 +304,7 @@ export default function Reimbursements() {
                 </button>
             </form>
 
-            {/* List View */}
+            {/* List View with Edit & Delete */}
             <div className="space-y-4">
                 {reimbursements.length === 0 ? (
                     <div className="rounded-3xl anime-glass border border-purple-500/30 p-12 text-center text-xs text-purple-300 shadow-xl">
@@ -231,7 +331,7 @@ export default function Reimbursements() {
                                 </p>
                             </div>
 
-                            <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-4">
                                 <span className="text-lg font-black text-white font-display">
                                     {formatINR(item.amountPaid)}
                                 </span>
@@ -245,6 +345,22 @@ export default function Reimbursements() {
                                 >
                                     <CheckCircle2 className="w-4 h-4" />
                                     {item.reimbursed ? 'Reimbursed & Added' : 'Mark Reimbursed'}
+                                </button>
+
+                                <button
+                                    onClick={() => handleOpenEdit(item)}
+                                    className="p-2.5 rounded-xl bg-purple-900/40 border border-purple-500/30 text-purple-300 hover:text-white hover:bg-purple-900/80 transition-all cursor-pointer"
+                                    title="Edit Item"
+                                >
+                                    <Edit3 className="w-4 h-4" />
+                                </button>
+
+                                <button
+                                    onClick={() => deleteReimbursement(item.id)}
+                                    className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
+                                    title="Delete Item"
+                                >
+                                    <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>

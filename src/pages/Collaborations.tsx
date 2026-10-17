@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../context/store';
 import { btnCls, inputCls } from '../lib/theme';
-import { Plus, Sparkles, Filter, CheckCircle2, Tag, ExternalLink, Video, Clock, AlertTriangle, BellRing, Link2, Edit3 } from 'lucide-react';
+import { Plus, Sparkles, Filter, CheckCircle2, Tag, ExternalLink, Video, Clock, AlertTriangle, BellRing, Link2, Edit3, Trash2 } from 'lucide-react';
 import type { Deal } from '../types';
 
 export default function Collaborations() {
@@ -230,8 +230,8 @@ export default function Collaborations() {
                     <button
                         onClick={() => { setActiveTab('pipeline'); setSearchParams({}); }}
                         className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'pipeline'
-                                ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/30'
-                                : 'anime-glass text-purple-300 hover:text-white'
+                            ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/30'
+                            : 'anime-glass text-purple-300 hover:text-white'
                             }`}
                     >
                         📋 Active Pipeline
@@ -239,8 +239,8 @@ export default function Collaborations() {
                     <button
                         onClick={() => { setActiveTab('directory'); setSearchParams({}); }}
                         className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'directory'
-                                ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/30'
-                                : 'anime-glass text-purple-300 hover:text-white'
+                            ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/30'
+                            : 'anime-glass text-purple-300 hover:text-white'
                             }`}
                     >
                         🏢 Brand Directory & LTV
@@ -597,260 +597,174 @@ export default function Collaborations() {
                 </div>
             )}
 
-            {/* Active Pipeline Grid */}
-            {activeTab === 'pipeline' && (
+            {/* MAIN CONTENT AREA */}
+            {activeTab === 'pipeline' ? (
                 <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {displayDeals.length === 0 ? (
-                            <div className="col-span-2 anime-glass p-8 rounded-2xl text-center text-purple-300">
-                                {isOverdueFilter
-                                    ? '🎉 Great news! You have no overdue payment invoices right now.'
-                                    : 'No active collaborations yet. Click "+ Add / Backfill Deal" to log a deal!'}
-                            </div>
-                        ) : (
-                            displayDeals.map((deal) => {
-                                const brand = brands.find((b) => b.id === deal.brandId);
-                                const fee = deal.agreedFee || 0;
-                                const notification = getTimelineNotification(deal);
+                    {displayDeals.length === 0 ? (
+                        <div className="anime-glass p-12 text-center rounded-3xl border border-purple-500/30">
+                            <p className="text-purple-300 font-bold">No collaborations found in this view.</p>
+                        </div>
+                    ) : (
+                        displayDeals.map((deal) => {
+                            const brand = brands.find((b) => b.id === deal.brandId);
+                            const timelineNotif = getTimelineNotification(deal);
 
-                                return (
-                                    <div key={deal.id} className="anime-glass p-5 rounded-2xl border border-purple-500/20 space-y-3 relative overflow-hidden">
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-800 to-pink-600 flex items-center justify-center font-black text-white text-base shadow-md">
-                                                    {brand?.name ? brand.name.charAt(0) : 'B'}
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-bold text-pink-300 flex items-center gap-1.5">
-                                                        {brand?.name || 'Brand Partner'}
-                                                        <span className="text-[9px] bg-purple-900/60 text-purple-300 px-1.5 py-0.2 rounded border border-purple-500/20">
-                                                            {brand?.niche || 'Beauty'}
-                                                        </span>
-                                                    </p>
-                                                    <h3 className="text-base font-extrabold text-white">{deal.title}</h3>
-                                                </div>
-                                            </div>
-
+                            return (
+                                <div key={deal.id} className="anime-glass p-6 rounded-3xl border border-purple-500/30 space-y-4 shadow-xl hover:border-pink-500/40 transition-all">
+                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                        <div className="space-y-1">
                                             <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => handleOpenEditModal(deal)}
-                                                    className="bg-purple-950/80 hover:bg-purple-900 text-purple-300 p-1.5 rounded-lg border border-purple-500/20 cursor-pointer transition-all flex items-center gap-1 text-[11px] font-bold px-2"
-                                                >
-                                                    <Edit3 className="w-3.5 h-3.5" /> Edit
-                                                </button>
-                                                <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${deal.type === 'barter'
-                                                        ? 'bg-purple-900/80 text-purple-300 border border-purple-500/30'
-                                                        : deal.status === 'paid'
-                                                            ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30'
-                                                            : deal.status === 'completed'
-                                                                ? 'bg-blue-950/80 text-blue-300 border border-blue-500/30'
-                                                                : 'bg-amber-950/80 text-amber-300 border border-amber-500/30'
-                                                    }`}>
-                                                    {deal.type === 'barter' ? '🎁 Barter' : `₹${fee.toLocaleString('en-IN')}`}
+                                                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30">
+                                                    {brand ? brand.name : 'Brand'}
                                                 </span>
+                                                <span className="text-xs text-purple-300 font-semibold">• {deal.type?.toUpperCase()}</span>
                                             </div>
+                                            <h3 className="text-lg font-black text-white">{deal.title}</h3>
+                                            <p className="text-xs text-purple-300">{deal.notes}</p>
                                         </div>
 
-                                        <p className="text-xs text-purple-200/80 bg-purple-950/40 p-2.5 rounded-xl border border-purple-500/10">
-                                            {deal.notes || 'Standard brand collaboration terms.'}
-                                        </p>
-
-                                        {/* Submission Date & Payment Timeline inline controls */}
-                                        <div className="grid grid-cols-2 gap-2 bg-purple-950/50 p-2.5 rounded-xl border border-purple-500/15 text-xs">
-                                            <div>
-                                                <span className="text-[10px] text-purple-300 font-bold block mb-0.5">Submitted On</span>
-                                                <input
-                                                    type="date"
-                                                    value={deal.completedDate || deal.dueDate || ''}
-                                                    onChange={(e) => {
-                                                        updateDeal(deal.id, { completedDate: e.target.value, dueDate: e.target.value });
-                                                    }}
-                                                    className={`${inputCls} py-1 text-[11px]`}
-                                                />
-                                            </div>
-                                            <div>
-                                                <span className="text-[10px] text-purple-300 font-bold block mb-0.5">Payment Timeline</span>
-                                                <select
-                                                    value={deal.paymentTimeline || '30-45_biz_days'}
-                                                    onChange={(e) => {
-                                                        updateDeal(deal.id, { paymentTimeline: e.target.value });
-                                                    }}
-                                                    className={`${inputCls} py-1 text-[11px]`}
-                                                >
-                                                    <option value="5_days" className="bg-purple-950 text-white">5 Days Net</option>
-                                                    <option value="7_days" className="bg-purple-950 text-white">7 Days Net</option>
-                                                    <option value="15_days" className="bg-purple-950 text-white">15 Days Net</option>
-                                                    <option value="30-45_biz_days" className="bg-purple-950 text-white">30–45 Business Days</option>
-                                                    <option value="30_biz_days" className="bg-purple-950 text-white">30 Business Days</option>
-                                                    <option value="45_biz_days" className="bg-purple-950 text-white">45 Business Days</option>
-                                                    <option value="30_days" className="bg-purple-950 text-white">30 Days Net</option>
-                                                    <option value="45_days" className="bg-purple-950 text-white">45 Days Net</option>
-                                                    <option value="60_days" className="bg-purple-950 text-white">60 Days Net</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {/* Deliverables Video Links */}
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[11px] font-bold text-pink-300 flex items-center gap-1">
-                                                    <Video className="w-3.5 h-3.5 text-pink-400" /> Deliverables ({deal.deliverableLinks?.length || 0})
-                                                </span>
-                                                <button
-                                                    onClick={() => handleOpenUploadModal(deal)}
-                                                    className="bg-purple-900/80 hover:bg-pink-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer border border-purple-500/30"
-                                                >
-                                                    <Plus className="w-3 h-3" /> Add Link
-                                                </button>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                                <p className="text-xs text-purple-400 font-bold uppercase tracking-wider">Agreed Payout</p>
+                                                <p className="text-xl font-black text-white">₹{(deal.agreedFee || deal.payout || 0).toLocaleString('en-IN')}</p>
                                             </div>
 
-                                            {deal.deliverableLinks && deal.deliverableLinks.length > 0 && (
-                                                <div className="flex flex-col gap-1.5">
-                                                    {deal.deliverableLinks.map((link, idx) => (
-                                                        <div key={idx} className="flex items-center justify-between bg-pink-950/30 px-3 py-1.5 rounded-xl border border-pink-500/20 text-xs">
-                                                            <span className="text-pink-200 font-medium truncate max-w-[200px]">Video #{idx + 1}</span>
-                                                            <a
-                                                                href={link}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-pink-400 hover:underline flex items-center gap-1 font-bold"
-                                                            >
-                                                                View Link <ExternalLink className="w-3 h-3" />
-                                                            </a>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Timeline Notification Warning Banner */}
-                                        {notification && (
-                                            <div className={`p-2.5 rounded-xl border flex items-center gap-2 text-[11px] font-bold ${notification.type === 'overdue'
-                                                    ? 'bg-rose-950/80 border-rose-500/40 text-rose-300 animate-pulse'
-                                                    : notification.type === 'warning'
-                                                        ? 'bg-amber-950/80 border-amber-500/40 text-amber-300'
-                                                        : 'bg-purple-950/40 border-purple-500/20 text-purple-300'
-                                                }`}>
-                                                {notification.type === 'overdue' ? (
-                                                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-                                                ) : (
-                                                    <BellRing className="w-4 h-4 text-amber-400 shrink-0" />
-                                                )}
-                                                <span>{notification.message}</span>
-                                            </div>
-                                        )}
-
-                                        <div className="flex items-center justify-between text-[11px] text-purple-300 pt-1">
-                                            <span className="flex items-center gap-1">
-                                                <Clock className="w-3.5 h-3.5 text-purple-400" /> Terms: {deal.paymentTimeline?.replace(/_/g, ' ') || '30-45 biz days'}
-                                            </span>
-
-                                            <div className="flex items-center gap-2 flex-wrap justify-end">
-                                                <button
-                                                    onClick={() => handleOpenUploadModal(deal)}
-                                                    className={`px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all ${deal.status === 'completed' || deal.status === 'paid'
-                                                            ? 'bg-blue-600 text-white shadow-md'
-                                                            : 'bg-purple-900/60 text-purple-200 hover:bg-purple-800/60'
-                                                        }`}
-                                                >
-                                                    <Video className="w-3 h-3" />
-                                                    {deal.status === 'completed' ? 'Completed ✓' : 'Mark Completed'}
-                                                </button>
-
-                                                <button
-                                                    onClick={() => setDealStatus(deal.id, deal.status === 'paid' ? 'completed' : 'paid')}
-                                                    className={`px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all ${deal.status === 'paid'
-                                                            ? 'bg-emerald-600 text-white shadow-md'
-                                                            : 'bg-purple-900/60 text-purple-200 hover:bg-purple-800/60'
-                                                        }`}
-                                                >
-                                                    <CheckCircle2 className="w-3 h-3" />
-                                                    {deal.status === 'paid' ? 'Paid & Cleared' : 'Mark Paid'}
-                                                </button>
-
-                                                <button
-                                                    onClick={() => deleteDeal(deal.id)}
-                                                    className="text-rose-400 hover:text-rose-300 text-xs font-bold px-1.5 py-1"
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
+                                            {/* Status Dropdown / Marker */}
+                                            <select
+                                                value={deal.status}
+                                                onChange={(e) => setDealStatus(deal.id, e.target.value as any)}
+                                                className={`text-xs font-bold px-3 py-2 rounded-xl border outline-none cursor-pointer ${deal.status === 'paid'
+                                                        ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+                                                        : deal.status === 'completed'
+                                                            ? 'bg-purple-900/60 text-purple-200 border-purple-500/40'
+                                                            : 'bg-pink-950/80 text-pink-300 border-pink-500/40'
+                                                    }`}
+                                            >
+                                                <option value="lead" className="bg-purple-950 text-white">Lead</option>
+                                                <option value="negotiation" className="bg-purple-950 text-white">Negotiation</option>
+                                                <option value="confirmed" className="bg-purple-950 text-white">Confirmed</option>
+                                                <option value="in_progress" className="bg-purple-950 text-white">In Progress</option>
+                                                <option value="posted" className="bg-purple-950 text-white">Posted</option>
+                                                <option value="completed" className="bg-purple-950 text-white">Completed</option>
+                                                <option value="paid" className="bg-emerald-950 text-emerald-300">💰 PAID</option>
+                                                <option value="declined" className="bg-purple-950 text-white">Declined</option>
+                                            </select>
                                         </div>
                                     </div>
-                                );
-                            })
-                        )}
-                    </div>
-                </div>
-            )}
 
-            {/* Directory Tab */}
-            {activeTab === 'directory' && (
+                                    {/* Timeline Notification Banner */}
+                                    {timelineNotif && (
+                                        <div className={`p-3 rounded-2xl border text-xs font-bold flex items-center gap-2 ${timelineNotif.type === 'overdue'
+                                                ? 'bg-rose-950/60 border-rose-500/40 text-rose-300'
+                                                : timelineNotif.type === 'warning'
+                                                    ? 'bg-amber-950/60 border-amber-500/40 text-amber-300'
+                                                    : 'bg-purple-950/40 border-purple-500/20 text-purple-300'
+                                            }`}>
+                                            {timelineNotif.type === 'overdue' ? <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" /> : <Clock className="w-4 h-4 text-amber-400 shrink-0" />}
+                                            <span>{timelineNotif.message}</span>
+                                        </div>
+                                    )}
+
+                                    {/* Footer Actions & Deliverable Links */}
+                                    <div className="flex flex-wrap justify-between items-center gap-2 pt-2 border-t border-purple-500/20">
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => handleOpenUploadModal(deal)}
+                                                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-pink-500/20 text-pink-300 border border-pink-500/30 hover:bg-pink-500/30 flex items-center gap-1.5 cursor-pointer"
+                                            >
+                                                <Video className="w-3.5 h-3.5" /> Upload Video Reel
+                                            </button>
+
+                                            {deal.deliverableLinks && deal.deliverableLinks.map((link, idx) => (
+                                                <a
+                                                    key={idx}
+                                                    href={link}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-purple-900/50 text-purple-200 border border-purple-500/30 flex items-center gap-1 hover:text-white"
+                                                >
+                                                    <ExternalLink className="w-3 h-3 text-pink-400" /> Link #{idx + 1}
+                                                </a>
+                                            ))}
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => handleOpenEditModal(deal)}
+                                                className="p-1.5 rounded-lg text-purple-300 hover:text-white hover:bg-purple-900/50 transition-all cursor-pointer"
+                                                title="Edit Campaign"
+                                            >
+                                                <Edit3 className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => deleteDeal(deal.id)}
+                                                className="p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-950/50 transition-all cursor-pointer"
+                                                title="Delete Deal"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            ) : (
+                /* Directory Tab */
                 <div className="space-y-6">
-                    <div className="anime-glass p-3 rounded-2xl border border-purple-500/20 flex items-center gap-2 overflow-x-auto">
-                        <Filter className="w-4 h-4 text-pink-400 ml-2" />
-                        <span className="text-xs font-bold text-purple-300 mr-2">Filter Niche:</span>
-                        {niches.map((niche) => (
+                    {/* Niche Filter Pills */}
+                    <div className="flex flex-wrap gap-2">
+                        {niches.map((n) => (
                             <button
-                                key={niche}
-                                onClick={() => setSelectedNiche(niche)}
-                                className={`text-xs px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${selectedNiche === niche
-                                        ? 'bg-pink-500 text-white shadow-md shadow-pink-500/30'
-                                        : 'bg-purple-950/50 text-purple-300 hover:text-white'
+                                key={n}
+                                onClick={() => setSelectedNiche(n)}
+                                className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${selectedNiche === n
+                                        ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/30'
+                                        : 'anime-glass text-purple-300 hover:text-white'
                                     }`}
                             >
-                                {niche}
+                                {n}
                             </button>
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {filteredBrands.length === 0 ? (
-                            <div className="col-span-3 anime-glass p-8 rounded-2xl text-center text-purple-300">
-                                No active brands in this niche yet.
-                            </div>
-                        ) : (
-                            filteredBrands.map((brand) => {
-                                const brandDeals = deals.filter((d) => d.brandId === brand.id);
-                                const paidDealsCount = brandDeals.filter((d) => d.type === 'paid').length;
-                                const barterDealsCount = brandDeals.filter((d) => d.type === 'barter').length;
-                                const totalLTV = brandDeals.reduce((acc, d) => acc + (d.agreedFee || 0), 0);
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredBrands.map((brand) => {
+                            const brandDeals = deals.filter((d) => d.brandId === brand.id);
+                            const totalLtv = brandDeals.reduce((sum, d) => sum + (d.agreedFee || d.payout || 0), 0);
 
-                                return (
-                                    <div key={brand.id} className="anime-glass p-5 rounded-2xl border border-purple-500/20 space-y-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-purple-500/30">
-                                                {brand.name ? brand.name.charAt(0) : 'B'}
-                                            </div>
-                                            <div>
-                                                <h3 className="text-base font-extrabold text-white">{brand.name}</h3>
-                                                <p className="text-[10px] text-pink-300 font-medium">{brand.instagram || brand.email || 'Partner'}</p>
-                                            </div>
+                            return (
+                                <div key={brand.id} className="anime-glass p-6 rounded-3xl border border-purple-500/30 space-y-4 shadow-xl">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <span className="text-[10px] uppercase font-bold text-pink-400 tracking-wider">{brand.niche || brand.category}</span>
+                                            <h3 className="text-xl font-black text-white">{brand.name}</h3>
                                         </div>
-
-                                        <div className="flex items-center gap-1.5">
-                                            <Tag className="w-3 h-3 text-purple-400" />
-                                            <span className="text-[10px] bg-purple-950/80 text-purple-200 px-2.5 py-0.5 rounded-md font-semibold border border-purple-500/20">
-                                                {brand.niche || 'Fashion'}
-                                            </span>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-2 bg-purple-950/40 p-3 rounded-xl border border-purple-500/10 text-center">
-                                            <div>
-                                                <p className="text-[10px] text-purple-300 font-bold uppercase">Total Collabs</p>
-                                                <p className="text-base font-black text-white">{brandDeals.length} Deals</p>
-                                                <p className="text-[9px] text-purple-300">{paidDealsCount} Paid | {barterDealsCount} Barter</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] text-purple-300 font-bold uppercase">Lifetime Value</p>
-                                                <p className="text-base font-black text-emerald-400">₹{totalLTV.toLocaleString('en-IN')}</p>
-                                                <p className="text-[9px] text-emerald-300/80">Accumulated Earnings</p>
-                                            </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] uppercase font-bold text-purple-400">Lifetime Value</p>
+                                            <p className="text-lg font-black text-emerald-400">₹{totalLtv.toLocaleString('en-IN')}</p>
                                         </div>
                                     </div>
-                                );
-                            })
-                        )}
+
+                                    <div className="space-y-2 pt-2 border-t border-purple-500/20">
+                                        <p className="text-xs font-bold text-purple-300">Campaigns ({brandDeals.length}):</p>
+                                        {brandDeals.length === 0 ? (
+                                            <p className="text-xs text-purple-400 italic">No campaigns logged yet.</p>
+                                        ) : (
+                                            brandDeals.map((d) => (
+                                                <div key={d.id} className="text-xs bg-purple-950/60 p-2.5 rounded-xl flex justify-between items-center border border-purple-500/20">
+                                                    <span className="font-bold text-white truncate max-w-[160px]">{d.title}</span>
+                                                    <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${d.status === 'paid' ? 'bg-emerald-950 text-emerald-300' : 'bg-pink-950 text-pink-300'}`}>
+                                                        {d.status.toUpperCase()}
+                                                    </span>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
