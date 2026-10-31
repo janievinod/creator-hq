@@ -219,6 +219,7 @@ export interface StoreContextType {
     setDealStatus: (id: string, status: DealStatus) => void;
     deleteDeal: (id: string) => void;
     addPayment: (dealId: string, amount: number, date: string) => void;
+    deletePayment: (paymentId: string) => void;
     addExpense: (dealId: string, note: string, amount: number, date: string, category?: 'studio' | 'personal') => void;
     deleteExpense: (id: string) => void;
     updateExpense: (id: string, updatedFields: Partial<Expense>) => void;
@@ -537,19 +538,24 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
                         brandId: targetBrandId || d.brandId,
                     };
 
-                    if (updatedFields.status === 'paid' && d.status !== 'paid') {
-                        const amount = updated.agreedFee || updated.payout || 0;
-                        const existingPayment = payments.find(p => p.dealId === dealId);
-                        if (!existingPayment && amount > 0) {
-                            const newPayment: Payment = {
-                                id: `p_${Date.now()}`,
+                    const newStatus = updatedFields.status;
+                    const fee = Number(updated.agreedFee ?? updated.payout ?? 0);
+
+                    if (newStatus === 'paid') {
+                        // Ensure EXACTLY one payment record exists for this deal with its exact fee
+                        setPayments(prevPayments => {
+                            const filtered = prevPayments.filter(p => p.dealId !== dealId);
+                            return [...filtered, {
+                                id: `p_${dealId}`,
                                 dealId,
-                                amount,
+                                amount: fee,
                                 date: new Date().toISOString().split('T')[0],
-                                note: 'Marked as paid',
-                            };
-                            setPayments(prev => [...prev, newPayment]);
-                        }
+                                note: 'Marked as paid'
+                            }];
+                        });
+                    } else if (newStatus && newStatus !== 'paid') {
+                        // If changed away from paid, remove its payment record
+                        setPayments(prevPayments => prevPayments.filter(p => p.dealId !== dealId));
                     }
 
                     return updated;
@@ -564,20 +570,23 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
             prev.map(d => {
                 if (d.id === id) {
                     const updated = { ...d, status };
-                    if (status === 'paid' && d.status !== 'paid') {
-                        const amount = d.agreedFee || d.payout || 0;
-                        const existingPayment = payments.find(p => p.dealId === id);
-                        if (!existingPayment && amount > 0) {
-                            const newPayment: Payment = {
-                                id: `p_${Date.now()}`,
+                    const fee = Number(d.agreedFee ?? d.payout ?? 0);
+
+                    if (status === 'paid') {
+                        setPayments(prevPayments => {
+                            const filtered = prevPayments.filter(p => p.dealId !== id);
+                            return [...filtered, {
+                                id: `p_${id}`,
                                 dealId: id,
-                                amount,
+                                amount: fee,
                                 date: new Date().toISOString().split('T')[0],
-                                note: 'Marked as paid',
-                            };
-                            setPayments(pArr => [...pArr, newPayment]);
-                        }
+                                note: 'Marked as paid'
+                            }];
+                        });
+                    } else {
+                        setPayments(prevPayments => prevPayments.filter(p => p.dealId !== id));
                     }
+
                     return updated;
                 }
                 return d;
@@ -585,9 +594,11 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         );
     };
 
+
     const deleteDeal = (id: string) => setDeals(prev => prev.filter(d => d.id !== id));
     const addPayment = (dealId: string, amount: number, date: string) => setPayments(prev => [...prev, { id: `p_${Date.now()}`, dealId, amount, date }]);
-    
+    const deletePayment = (paymentId: string) => setPayments(prev => prev.filter(p => p.id !== paymentId));
+
     const addExpense = (dealId: string, note: string, amount: number, date: string, category: 'studio' | 'personal' = 'studio') => {
         setExpenses(prev => [{
             id: `e_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -655,7 +666,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         <StoreContext.Provider value={{
             profile, setProfile, brands, deals, payments, expenses, deliverables, messages, ideas, goal, reimbursements, leads,
             syncReport, isSyncing, startingBankBalance, setStartingBankBalance, setSyncMode,
-            addDeal, updateDeal, setDealStatus, deleteDeal, addPayment, addExpense, deleteExpense, updateExpense, toggleDeliverable,
+            addDeal, updateDeal, setDealStatus, deleteDeal, addPayment, deletePayment, addExpense, deleteExpense, updateExpense, toggleDeliverable,
             addMessage, patchMessage, addIdea, setIdeaStatus, setGoal, addReimbursement, toggleReimbursement,
             deleteReimbursement, updateReimbursement, syncInboxes, clearAllData
         }}>
