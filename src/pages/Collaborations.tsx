@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../context/store';
 import { btnCls, inputCls } from '../lib/theme';
-import { Plus, Sparkles, Filter, CheckCircle2, Tag, ExternalLink, Video, Clock, AlertTriangle, BellRing, Link2, Edit3, Trash2 } from 'lucide-react';
+import { Plus, Sparkles, ExternalLink, Video, Clock, AlertTriangle, Link2, Edit3, Trash2 } from 'lucide-react';
 import type { Deal } from '../types';
 
 export default function Collaborations() {

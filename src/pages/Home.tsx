@@ -4,7 +4,7 @@ import NewDealModal from '../components/ui/NewDealModal';
 import StatCard from '../components/ui/StatCard';
 import { useStore } from '../context/store';
 import { useTheme, THEMES, type SeasonTheme } from '../context/ThemeContext';
-import { cashReceivedInMonth, goalProgress, overdueBalance, totalOutstanding } from '../lib/finance';
+import { goalProgress, overdueBalance, expensesInMonth } from '../lib/finance';
 import { daysLeft, formatDate, formatINR } from '../lib/format';
 import { btnCls } from '../lib/theme';
 import { useToday } from '../lib/useToday';
@@ -18,15 +18,33 @@ export default function Home({ onNavigate }: { onNavigate: (tab: string) => void
     const [open, setOpen] = useState(false);
     const deals = s.deals || [];
     const payments = s.payments || [];
+    const expenses = s.expenses || [];
     const messages = s.messages || [];
     const deliverables = s.deliverables || [];
     const brands = s.brands || [];
     const goal = s.goal || { revenueTarget: 50000 };
     const profile = s.profile || { name: 'Creator', handle: '@creator' };
 
-    const received = cashReceivedInMonth(deals, payments, today);
+    // 1. Gross Received Cash = ONLY explicit payments logged (Defaults to 0 if none logged)
+    const grossReceived = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+    // 2. Monthly Expenses = total expenses logged
+    const monthlyExpenses = expensesInMonth(expenses, today);
+
+    // 3. Net Revenue = Gross Cash - Monthly Expenses (Min 0)
+    const netRevenue = Math.max(0, grossReceived - monthlyExpenses);
+
+    // 4. Total Outstanding = Sum of ALL active pipeline deals pending bank payout
+    const outstanding = deals
+        .filter(d => d.type === 'paid' && !['declined', 'lead'].includes(d.status))
+        .reduce((sum, d) => {
+            const fee = Number(d.agreedFee ?? d.payout ?? 0);
+            const paidForDeal = payments.filter(p => p.dealId === d.id).reduce((pSum, p) => pSum + (Number(p.amount) || 0), 0);
+            return sum + Math.max(0, fee - paidForDeal);
+        }, 0);
+
     const overdue = overdueBalance(deals, payments, today);
-    const progress = goalProgress(received, goal.revenueTarget ?? 0);
+    const progress = goalProgress(netRevenue, goal.revenueTarget ?? 0);
     const active = deals.filter(d => ['confirmed', 'in_progress', 'posted', 'active', 'content_review'].includes(d.status)).length;
     const leads = messages.filter(m => !m.dismissed && !m.converted && m.kind !== 'none').length;
     const upcoming = deliverables.filter(x => !x.done).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || '')).slice(0, 6);
@@ -56,8 +74,8 @@ export default function Home({ onNavigate }: { onNavigate: (tab: string) => void
                                 key={themeKey}
                                 onClick={() => setTheme(themeKey)}
                                 className={`px-3.5 py-1.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${isActive
-                                        ? `${t.badgeBg} shadow-lg scale-105 border`
-                                        : 'bg-purple-950/40 text-purple-300 hover:text-white border border-purple-500/20'
+                                    ? `${t.badgeBg} shadow-lg scale-105 border`
+                                    : 'bg-purple-950/40 text-purple-300 hover:text-white border border-purple-500/20'
                                     }`}
                             >
                                 <span>{t.emoji}</span>
@@ -81,7 +99,7 @@ export default function Home({ onNavigate }: { onNavigate: (tab: string) => void
                             Welcome back, {profile.name} 🌙
                         </h1>
                         <p className="text-xs sm:text-sm text-purple-300 font-medium">
-                            {formatINR(received)} collected this month · Monthly quest target {formatINR(goal.revenueTarget ?? 0)}
+                            {formatINR(netRevenue)} net revenue this month{monthlyExpenses > 0 ? ` (Gross: ${formatINR(grossReceived)} | Exp: ${formatINR(monthlyExpenses)})` : ''} · Monthly quest target {formatINR(goal.revenueTarget ?? 0)}
                         </p>
                     </div>
 
@@ -106,8 +124,18 @@ export default function Home({ onNavigate }: { onNavigate: (tab: string) => void
 
             {/* Glowing Stat Cards Grid */}
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                <StatCard emoji="💰" label="Collected This Month" value={formatINR(received)} hint="Real bank credits" />
-                <StatCard emoji="⏳" label="Total Outstanding" value={formatINR(totalOutstanding(deals, payments))} hint="Committed deal fees" />
+                <div
+                    onClick={() => onNavigate('expenses')}
+                    className="cursor-pointer transition-transform hover:scale-[1.02]"
+                >
+                    <StatCard
+                        emoji="💰"
+                        label="Collected This Month"
+                        value={formatINR(netRevenue)}
+                        hint={monthlyExpenses > 0 ? `Net: Gross ${formatINR(grossReceived)} | Exp ${formatINR(monthlyExpenses)}` : "Real bank credits after expenses"}
+                    />
+                </div>
+                <StatCard emoji="⏳" label="Total Outstanding" value={formatINR(outstanding)} hint="Committed deal fees" />
 
                 {/* Clickable Overdue Invoices Card Container */}
                 <div

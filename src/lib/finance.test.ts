@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cashReceivedInMonth, dealProfit, goalProgress, isCommittedPaidDeal, outstandingForDeal, overdueBalance, totalOutstanding } from './finance';
+import { cashReceivedInMonth, dealProfit, goalProgress, isCommittedPaidDeal, outstandingForDeal, overdueBalance, totalOutstanding, netRevenueCollected } from './finance';
 import type { Deal, Expense, Payment } from '../types';
 
 describe('Finance Helpers', () => {
@@ -19,7 +19,7 @@ describe('Finance Helpers', () => {
     ];
 
     const sampleExpenses: Expense[] = [
-        { id: 'e1', dealId: 'd1', note: 'Prop purchase', amount: 1200, date: '2026-10-02' }
+        { id: 'e1', dealId: 'd1', title: 'Prop purchase', note: 'Prop purchase', amount: 1200, date: '2026-10-02', category: 'studio' }
     ];
 
     it('identifies committed paid deals correctly', () => {
@@ -49,13 +49,21 @@ describe('Finance Helpers', () => {
         expect(goalProgress(75000, 50000)).toBe(100); // capped at 100%
     });
 
-    it('clears outstanding balance to zero when deal is marked paid', () => {
-        const paidDeal: Deal = { ...sampleDeal, status: 'paid' };
-        expect(outstandingForDeal(paidDeal, [])).toBe(0);
-        expect(outstandingForDeal(paidDeal, samplePayments)).toBe(0);
+    it('clears outstanding balance to zero when full payments are recorded', () => {
+        const fullPayments: Payment[] = [{ id: 'p_full', dealId: 'd1', amount: 15000, date: '2026-10-05' }];
+        expect(outstandingForDeal(sampleDeal, fullPayments)).toBe(0);
     });
 
-    it('clears totalOutstanding and overdueBalance to zero when deals are paid', () => {
+    it('correctly aggregates all active/committed deal payouts pending collection in totalOutstanding', () => {
+        expect(totalOutstanding([sampleDeal], samplePayments)).toBe(7000); // 15000 - 8000 = 7000
+        expect(totalOutstanding([sampleDeal], [])).toBe(15000); // full 15000 pending collection when no payments
+    });
+
+    it('defaults cashReceivedInMonth to 0 when no explicit payments are logged', () => {
+        expect(cashReceivedInMonth([sampleDeal], [])).toBe(0);
+    });
+
+    it('calculates overdueBalance for committed deals past due date based on outstanding amount', () => {
         const overdueDeal: Deal = {
             id: 'd_overdue',
             title: 'Overdue Collab',
@@ -66,36 +74,29 @@ describe('Finance Helpers', () => {
         };
         const today = new Date('2026-10-15');
 
-        // Before paying
+        // Full fee is overdue when no payments received
         expect(overdueBalance([overdueDeal], [], today)).toBe(10000);
 
-        // When marked paid
-        const paidOverdueDeal: Deal = { ...overdueDeal, status: 'paid' };
-        expect(overdueBalance([paidOverdueDeal], [], today)).toBe(0);
-        expect(totalOutstanding([paidOverdueDeal], [])).toBe(0);
+        // Clears to zero once payment received
+        const paidPayment: Payment[] = [{ id: 'p_paid', dealId: 'd_overdue', amount: 10000, date: '2026-10-05' }];
+        expect(overdueBalance([overdueDeal], paidPayment, today)).toBe(0);
     });
 
-    it('dynamically derives cashReceivedInMonth from paid deals without double counting payments', () => {
-        const today = new Date('2026-10-15');
-        const paidDeal: Deal = {
-            id: 'd_paid',
-            title: 'Paid Collab',
-            type: 'paid',
-            status: 'paid',
-            agreedFee: 12000,
-            completedDate: '2026-10-10',
-        };
+    it('calculates net revenue dynamically deducting expenses from collected payments', () => {
+        const payments: Payment[] = [{ id: 'p1', dealId: 'd1', amount: 5000, date: '2026-10-05' }];
+        const expenses: Expense[] = [{ id: 'e1', title: 'Props', amount: 200, date: '2026-10-10', category: 'studio' }];
 
-        // Case 1: Derived from deal marked paid when payments array has no entry
-        expect(cashReceivedInMonth([paidDeal], [], today)).toBe(12000);
+        // Gross ₹5,000 - Expenses ₹200 = ₹4,800
+        expect(netRevenueCollected([sampleDeal], payments, expenses)).toBe(4800);
 
-        // Case 2: Matching payment exists - should not double count
-        const matchingPayment: Payment = {
-            id: 'p_paid',
-            dealId: 'd_paid',
-            amount: 12000,
-            date: '2026-10-10',
-        };
-        expect(cashReceivedInMonth([paidDeal], [matchingPayment], today)).toBe(12000);
+        // When no payments collected, defaults cleanly to 0 (does not go negative)
+        expect(netRevenueCollected([sampleDeal], [], expenses)).toBe(0);
+    });
+
+    it('correctly calculates total outstanding for all 13 active brand deals and defaults collected to 0', async () => {
+        const { DEFAULT_DEALS } = await import('../context/store');
+        expect(DEFAULT_DEALS.length).toBe(13);
+        expect(cashReceivedInMonth(DEFAULT_DEALS, [])).toBe(0);
+        expect(totalOutstanding(DEFAULT_DEALS, [])).toBe(30547);
     });
 });

@@ -14,6 +14,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import SeasonalMotionBg from './components/ui/SeasonalMotionBg';
 import Reimbursements from './pages/Reimbursements';
 import Calendar from './pages/Calendar';
+import Expenses from './pages/Expenses';
 
 function HomeWithNavigation() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ function HomeWithNavigation() {
     else if (tab === 'inbox') navigate('/inbox');
     else if (tab === 'brands') navigate('/brands');
     else if (tab === 'money') navigate('/money');
+    else if (tab === 'expenses') navigate('/expenses');
     else if (tab === 'content') navigate('/content');
     else if (tab === 'review') navigate('/review');
     else if (tab === 'profile') navigate('/profile');
@@ -59,6 +61,7 @@ export default function App() {
                 <Route path="/brands" element={<BrandsWorkedWith />} />
                 <Route path="/inbox" element={<Inbox />} />
                 <Route path="/money" element={<Money />} />
+                <Route path="/expenses" element={<Expenses />} />
                 <Route path="/content" element={<Content />} />
                 <Route path="/ideas" element={<Content />} />
                 <Route path="/review" element={<MonthlyReview />} />

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useStore } from '../context/store';
 import { btnCls, inputCls } from '../lib/theme';
-import { Wallet, CheckCircle2, Plus, DollarSign, Target } from 'lucide-react';
+import { Wallet, CheckCircle2, Plus, DollarSign, Target, Briefcase, User } from 'lucide-react';
+import { cashReceivedInMonth, totalExpenses } from '../lib/finance';
 
 export default function Money() {
     const { deals, payments, expenses, startingBankBalance, setStartingBankBalance, goal, setGoal, setDealStatus, addPayment, addExpense } = useStore();
@@ -15,17 +16,18 @@ export default function Money() {
 
     const [expenseNote, setExpenseNote] = useState('');
     const [expenseAmount, setExpenseAmount] = useState('');
+    const [expenseCategory, setExpenseCategory] = useState<'studio' | 'personal'>('studio');
 
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentDealId, setPaymentDealId] = useState('');
 
     // Pure dynamic calculations starting from 0
-    const totalCollected = payments ? payments.reduce((acc, p) => acc + (p.amount || 0), 0) : 0;
-    const totalExpenses = expenses ? expenses.reduce((acc, e) => acc + (e.amount || 0), 0) : 0;
+    const totalCollected = cashReceivedInMonth(deals, payments);
+    const totalExpensesAmount = totalExpenses(expenses);
 
     const pendingPaymentDeals = deals ? deals.filter(d => d.status !== 'paid' && d.type === 'paid') : [];
     const totalOutstanding = pendingPaymentDeals.reduce((acc, d) => acc + (d.agreedFee || 0), 0);
-    const netRealizedRevenue = totalCollected - totalExpenses;
+    const netRealizedRevenue = totalCollected - totalExpensesAmount;
     const currentTotalLiquid = (startingBankBalance || 0) + netRealizedRevenue;
 
     const handleSaveBalance = () => {
@@ -41,7 +43,7 @@ export default function Money() {
     const handleLogExpense = (e: React.FormEvent) => {
         e.preventDefault();
         if (!expenseNote || !expenseAmount) return;
-        addExpense('gen', expenseNote, Number(expenseAmount), new Date().toISOString().split('T')[0]);
+        addExpense('gen', expenseNote, Number(expenseAmount), new Date().toISOString().split('T')[0], expenseCategory);
         setExpenseNote('');
         setExpenseAmount('');
     };
@@ -134,8 +136,8 @@ export default function Money() {
 
                 <div className="anime-glass p-4 rounded-2xl border border-purple-500/20">
                     <p className="text-[10px] text-purple-300 font-bold uppercase">Collected This Month</p>
-                    <p className="text-2xl font-black text-pink-400 mt-1">₹{totalCollected.toLocaleString('en-IN')}</p>
-                    <p className="text-[10px] text-pink-300/80 mt-1">✨ Cleared Brand Payments</p>
+                    <p className="text-2xl font-black text-pink-400 mt-1">₹{netRealizedRevenue.toLocaleString('en-IN')}</p>
+                    <p className="text-[10px] text-pink-300/80 mt-1">✨ Net Revenue (Gross ₹{totalCollected.toLocaleString('en-IN')} - Exp ₹{totalExpensesAmount.toLocaleString('en-IN')})</p>
                 </div>
 
                 <div className="anime-glass p-4 rounded-2xl border border-purple-500/20">
@@ -146,7 +148,7 @@ export default function Money() {
 
                 <div className="anime-glass p-4 rounded-2xl border border-purple-500/20">
                     <p className="text-[10px] text-purple-300 font-bold uppercase">Expenses Logged</p>
-                    <p className="text-2xl font-black text-rose-400 mt-1">₹{totalExpenses.toLocaleString('en-IN')}</p>
+                    <p className="text-2xl font-black text-rose-400 mt-1">₹{totalExpensesAmount.toLocaleString('en-IN')}</p>
                     <p className="text-[10px] text-rose-300/80 mt-1">🧾 Production & Props</p>
                 </div>
             </div>
@@ -190,6 +192,22 @@ export default function Money() {
                         <DollarSign className="w-4 h-4 text-rose-400" /> Log Production Expense
                     </h3>
                     <form onSubmit={handleLogExpense} className="space-y-3">
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setExpenseCategory('studio')}
+                                className={`flex-1 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${expenseCategory === 'studio' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' : 'bg-purple-950/40 text-purple-400 border border-purple-500/20'}`}
+                            >
+                                <Briefcase className="w-3.5 h-3.5" /> Studio
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setExpenseCategory('personal')}
+                                className={`flex-1 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${expenseCategory === 'personal' ? 'bg-pink-500/20 text-pink-300 border border-pink-500/40' : 'bg-purple-950/40 text-purple-400 border border-purple-500/20'}`}
+                            >
+                                <User className="w-3.5 h-3.5" /> Personal
+                            </button>
+                        </div>
                         <input
                             type="text"
                             placeholder="Description (e.g. Vintage props, ring light)"

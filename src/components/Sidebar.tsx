@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Inbox, DollarSign, Calendar, Lightbulb, Receipt, Settings, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Inbox, DollarSign, Calendar, Lightbulb, Receipt, Settings, ShoppingBag, Wallet } from 'lucide-react';
 
 const NAV_ITEMS = [
     { label: 'Dashboard', path: '/', icon: LayoutDashboard },
     { label: 'Inbound Leads', path: '/inbox', icon: Inbox },
     { label: 'Collaborations', path: '/collaborations', icon: DollarSign },
+    { label: 'Expenses', path: '/expenses', icon: Wallet },
     { label: 'Reimbursements', path: '/reimbursements', icon: ShoppingBag },
     { label: 'Deliverables Calendar', path: '/calendar', icon: Calendar },
     { label: 'Content Ideas', path: '/ideas', icon: Lightbulb },

@@ -39,6 +39,7 @@ export interface Deal {
     paymentTimeline?: string;
     deliverableLinks?: string[];
     notes?: string;
+    deliverables?: { id: string; title: string; done?: boolean }[];
 }
 
 export interface DealForm {
@@ -100,11 +101,11 @@ export interface Payment {
 export interface Expense {
     id: string;
     dealId?: string;
-    title?: string;
-    amount: number;
-    date?: string;
-    category?: string;
+    title: string;
     note?: string;
+    amount: number;
+    date: string;
+    category: 'studio' | 'personal';
 }
 
 export interface Goal {
